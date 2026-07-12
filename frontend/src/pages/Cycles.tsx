@@ -1,0 +1,152 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Card,
+  CardBody,
+  HStack,
+  Heading,
+  Select,
+  SimpleGrid,
+  Spinner,
+  Text,
+  VStack,
+  Badge,
+} from '@chakra-ui/react';
+import { FiPlus } from 'react-icons/fi';
+import { cyclesService, Cycle } from '../services/cycles.service';
+import { UserAvatar } from '../utils/Avatars';
+
+const PHASE_LABELS: Record<string, string> = {
+  preparation: 'Préparation',
+  demarrage: 'Démarrage',
+  croissance: 'Croissance',
+  finition: 'Finition',
+  commercialisation: 'Commercialisation',
+  nettoyage: 'Nettoyage',
+};
+
+const STATUT_COLORS: Record<string, string> = {
+  en_cours: 'success.1',
+  cloture: 'text.3',
+};
+
+export default function Cycles() {
+  const [cycles, setCycles] = useState<Cycle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('tous');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    cyclesService.getAll()
+      .then(setCycles)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = filter === 'tous' ? cycles : cycles.filter((c) => c.statut === filter);
+
+  if (loading) {
+    return <Center><Spinner size="xl" color="accent.1" /></Center>;
+  }
+
+  return (
+    <VStack spacing={6} align="stretch">
+      <HStack justify="space-between" flexWrap="wrap" gap={4}>
+        <Heading size="lg" color="text.1">Cycles</Heading>
+        <Button
+          leftIcon={<FiPlus />}
+          bg="accent.1"
+          color="gray.900"
+          _hover={{ bg: 'accent.2' }}
+          fontWeight="bold"
+          onClick={() => navigate('/cycles/nouveau')}
+        >
+          Nouveau cycle
+        </Button>
+      </HStack>
+
+      <HStack>
+        <Select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          bg="surface.1"
+          borderColor="border.1"
+          w="auto"
+          _focus={{ borderColor: 'accent.1' }}
+        >
+          <option value="tous">Tous</option>
+          <option value="en_cours">En cours</option>
+          <option value="cloture">Clôturé</option>
+        </Select>
+      </HStack>
+
+      {filtered.length === 0 ? (
+        <Text color="text.3" textAlign="center" py={10}>Aucun cycle trouvé.</Text>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+          {filtered.map((cycle) => (
+            <Card
+              key={cycle.id}
+              bg="surface.1"
+              borderColor="border.1"
+              borderWidth="1px"
+              cursor="pointer"
+              _hover={{ borderColor: 'accent.1', transform: 'translateY(-2px)' }}
+              transition="all 0.15s"
+              onClick={() => navigate(`/cycles/${cycle.id}`)}
+            >
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <HStack justify="space-between">
+                    <Text fontWeight="bold" color="text.1" fontSize="md">
+                      {cycle.numero_cycle}
+                    </Text>
+                    <Badge
+                      bg={cycle.statut === 'en_cours' ? 'success.1' : 'surface.3'}
+                      color={cycle.statut === 'en_cours' ? 'white' : 'text.2'}
+                      borderRadius="full"
+                      px={2}
+                    >
+                      {cycle.statut === 'en_cours' ? 'En cours' : 'Clôturé'}
+                    </Badge>
+                  </HStack>
+
+                  <HStack spacing={3}>
+                    {cycle.cree_par && (
+                      <UserAvatar name={cycle.cree_par.nom} size={24} src={cycle.cree_par.photo ?? null} />
+                    )}
+                    <VStack align="start" spacing={0}>
+                      <Text fontSize="xs" color="text.3">
+                        {new Date(cycle.date_reception).toLocaleDateString('fr-FR')}
+                      </Text>
+                      <Text fontSize="xs" color="text.3">
+                        Effectif: {cycle.effectif_initial}
+                      </Text>
+                    </VStack>
+                  </HStack>
+
+                  <HStack justify="space-between">
+                    <Text fontSize="sm" color="accent.1">
+                      {PHASE_LABELS[cycle.phase_courante] || cycle.phase_courante}
+                    </Text>
+                    {cycle.taux_mortalite_pct !== undefined && (
+                      <Text fontSize="xs" color={cycle.taux_mortalite_pct > 5 ? 'danger.1' : 'text.3'}>
+                        Mortalité: {cycle.taux_mortalite_pct.toFixed(1)}%
+                      </Text>
+                    )}
+                  </HStack>
+                </VStack>
+              </CardBody>
+            </Card>
+          ))}
+        </SimpleGrid>
+      )}
+    </VStack>
+  );
+}
+
+function Center({ children }: { children: React.ReactNode }) {
+  return <Box display="flex" justifyContent="center" py={20}>{children}</Box>;
+}
