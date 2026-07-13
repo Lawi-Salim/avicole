@@ -34,6 +34,7 @@ import { FiArrowLeft, FiPlus, FiTrash2, FiCheck } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { stocksService, Stock, CreateStockPayload } from '../services/stocks.service';
 import { santeService, Mortalite, CreateMortalitePayload } from '../services/sante.service';
+import { ventesService, FinancesData } from '../services/ventes.service';
 
 const PHASES = [
   { value: 'preparation', label: 'Préparation' },
@@ -57,6 +58,7 @@ export default function CycleDetail() {
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [mortalites, setMortalites] = useState<Mortalite[]>([]);
+  const [finances, setFinances] = useState<FinancesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -85,17 +87,19 @@ export default function CycleDetail() {
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
-      const [c, s, m] = await Promise.all([
+      const [c, s, m, f] = await Promise.all([
         cyclesService.getById(id),
         stocksService.getByCycle(id),
         santeService.getByCycle(id),
+        cyclesService.getFinances(id),
       ]);
       setCycle(c);
       setStocks(s);
       setMortalites(m);
+      setFinances(f);
       setNewPhase(c.phase_courante);
     } catch {
-      setError('Erreur lors du chargement des données');
+      setError('Erreur lors du chargement des donnees');
     } finally {
       setLoading(false);
     }
@@ -340,7 +344,10 @@ export default function CycleDetail() {
             Stocks ({stocks.length})
           </Tab>
           <Tab _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
-            Mortalité ({mortalites.length})
+            Mortalite ({mortalites.length})
+          </Tab>
+          <Tab _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+            Bilan financier
           </Tab>
         </TabList>
 
@@ -605,6 +612,66 @@ export default function CycleDetail() {
                   </Tbody>
                 </Table>
               </Box>
+            )}
+          </TabPanel>
+
+          {/* --- ONGLET BILAN FINANCIER --- */}
+          <TabPanel px={0} pt={4}>
+            {finances ? (
+              <VStack spacing={4} align="stretch">
+                <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
+                  <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+                    <CardBody py={3} px={4}>
+                      <Text fontSize="xs" color="text.3">Cout total</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="text.1">
+                        {Math.round(finances.cout_total).toLocaleString('fr-FR')} KMF
+                      </Text>
+                    </CardBody>
+                  </Card>
+                  <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+                    <CardBody py={3} px={4}>
+                      <Text fontSize="xs" color="text.3">Recettes totales</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="text.1">
+                        {Math.round(finances.total_ventes).toLocaleString('fr-FR')} KMF
+                      </Text>
+                    </CardBody>
+                  </Card>
+                  <Card bg="surface.1" borderColor={finances.marge >= 0 ? 'success.1' : 'danger.1'} borderWidth="1px">
+                    <CardBody py={3} px={4}>
+                      <Text fontSize="xs" color="text.3">Marge</Text>
+                      <Text fontSize="lg" fontWeight="bold" color={finances.marge >= 0 ? 'success.1' : 'danger.1'}>
+                        {finances.marge >= 0 ? '+' : ''}{Math.round(finances.marge).toLocaleString('fr-FR')} KMF
+                      </Text>
+                    </CardBody>
+                  </Card>
+                  <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+                    <CardBody py={3} px={4}>
+                      <Text fontSize="xs" color="text.3">Cout revient / poulet</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="text.1">
+                        {finances.cout_revient_par_poulet.toLocaleString('fr-FR')} KMF
+                      </Text>
+                    </CardBody>
+                  </Card>
+                  <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+                    <CardBody py={3} px={4}>
+                      <Text fontSize="xs" color="text.3">Seuil rentabilite</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="text.1">
+                        {finances.seuil_rentabilite} poulets
+                      </Text>
+                    </CardBody>
+                  </Card>
+                  <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+                    <CardBody py={3} px={4}>
+                      <Text fontSize="xs" color="text.3">Effectif vivant</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="text.1">
+                        {finances.effectif_vivant}
+                      </Text>
+                    </CardBody>
+                  </Card>
+                </SimpleGrid>
+              </VStack>
+            ) : (
+              <Text color="text.3" textAlign="center" py={6}>Chargement des donnees financieres...</Text>
             )}
           </TabPanel>
         </TabPanels>

@@ -41,4 +41,7 @@ export const cyclesService = {
 
   cloture: (id: string) =>
     api.post<Cycle>(`/cycles/${id}/cloture`).then((r) => r.data),
+
+  getFinances: (id: string) =>
+    api.get(`/cycles/${id}/finances`).then((r) => r.data),
 };

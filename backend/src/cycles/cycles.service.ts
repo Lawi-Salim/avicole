@@ -8,6 +8,9 @@ import { Op } from 'sequelize';
 import { Cycle } from './cycle.entity.js';
 import { Mortalite } from '../sante/mortalite.entity.js';
 import { MouvementStock } from '../stocks/mouvement-stock.entity.js';
+import { Depense } from '../finances/depense.entity.js';
+import { Vente } from '../ventes/vente.entity.js';
+import { Parametrage } from '../parametrages/parametrage.entity.js';
 import { CreateCycleDto } from './dto/create-cycle.dto.js';
 import { UpdateCycleDto } from './dto/update-cycle.dto.js';
 
@@ -29,6 +32,12 @@ export class CyclesService {
     private readonly mortaliteModel: typeof Mortalite,
     @InjectModel(MouvementStock)
     private readonly mouvementStockModel: typeof MouvementStock,
+    @InjectModel(Depense)
+    private readonly depenseModel: typeof Depense,
+    @InjectModel(Vente)
+    private readonly venteModel: typeof Vente,
+    @InjectModel(Parametrage)
+    private readonly parametrageModel: typeof Parametrage,
   ) {}
 
   async findAll(statut?: string) {
@@ -107,20 +116,12 @@ export class CyclesService {
       where: { cycle_id: id },
     });
 
-    const coutsStock = await this.mouvementStockModel.sum('cout', {
-      where: { cycle_id: id, sens: 'sortie' },
-    });
-
-    const coutTotal =
-      cycle.cout_achat_poussins + (coutsStock || 0);
-
-    const effectifVivant =
-      cycle.effectif_initial - (mortaliteCumulee || 0);
-
-    const coutRevientParPoulet =
-      effectifVivant > 0
-        ? parseFloat((coutTotal / effectifVivant).toFixed(2))
-        : 0;
+    const coutTotal = await this.calculerCoutTotal(id);
+    const totalVentes = await this.calculerTotalVentes(id);
+    const effectifVivant = await this.calculerEffectifVivant(id);
+    const coutRevientParPoulet = await this.calculerCoutRevientParPoulet(id);
+    const marge = await this.calculerMarge(id);
+    const seuilRentabilite = await this.calculerSeuilRentabilite(id);
 
     const today = new Date().toISOString().split('T')[0]!;
 
@@ -128,11 +129,11 @@ export class CyclesService {
       statut: 'cloture',
       date_cloture: today,
       bilan_cout_total: coutTotal,
-      bilan_recettes: 0,
-      bilan_marge: 0 - coutTotal,
+      bilan_recettes: totalVentes,
+      bilan_marge: marge,
       bilan_mortalite_cumulee: mortaliteCumulee || 0,
       bilan_cout_revient_par_poulet: coutRevientParPoulet,
-      bilan_seuil_rentabilite: coutTotal,
+      bilan_seuil_rentabilite: seuilRentabilite,
     });
 
     return cycle;
@@ -161,6 +162,74 @@ export class CyclesService {
       taux_mortalite_pct: tauxMortalite,
       phase_courante: cycle.phase_courante,
       statut: cycle.statut,
+    };
+  }
+
+  async calculerCoutTotal(cycleId: string): Promise<number> {
+    const cycle = await this.findOne(cycleId);
+
+    const totalDepenses = await this.depenseModel.sum('montant', {
+      where: { cycle_id: cycleId },
+    });
+
+    return parseFloat(((cycle.cout_achat_poussins || 0) + (totalDepenses || 0)).toFixed(2));
+  }
+
+  async calculerTotalVentes(cycleId: string): Promise<number> {
+    const ventes = await this.venteModel.findAll({
+      where: { cycle_id: cycleId, statut_paiement: { [Op.ne]: 'annule' } },
+    });
+
+    const total = ventes.reduce(
+      (sum, v) => sum + parseFloat(v.quantite as unknown as string) * parseFloat(v.prix_unitaire as unknown as string),
+      0,
+    );
+
+    return parseFloat(total.toFixed(2));
+  }
+
+  async calculerEffectifVivant(cycleId: string): Promise<number> {
+    const cycle = await this.findOne(cycleId);
+    const mortaliteCumulee = await this.mortaliteModel.sum('nombre', {
+      where: { cycle_id: cycleId },
+    });
+    return cycle.effectif_initial - (mortaliteCumulee || 0);
+  }
+
+  async calculerCoutRevientParPoulet(cycleId: string): Promise<number> {
+    const coutTotal = await this.calculerCoutTotal(cycleId);
+    const effectifVivant = await this.calculerEffectifVivant(cycleId);
+    if (effectifVivant <= 0) return 0;
+    return parseFloat((coutTotal / effectifVivant).toFixed(2));
+  }
+
+  async calculerMarge(cycleId: string): Promise<number> {
+    const coutTotal = await this.calculerCoutTotal(cycleId);
+    const totalVentes = await this.calculerTotalVentes(cycleId);
+    return parseFloat((totalVentes - coutTotal).toFixed(2));
+  }
+
+  async calculerSeuilRentabilite(cycleId: string): Promise<number> {
+    const coutTotal = await this.calculerCoutTotal(cycleId);
+    const parametrage = await this.parametrageModel.findOne({ where: { actif: true } });
+    const prixVenteStandard = parametrage?.prix_vente_standard || 0;
+    if (prixVenteStandard <= 0) return 0;
+    return Math.ceil(coutTotal / prixVenteStandard);
+  }
+
+  async getFinances(id: string) {
+    const cycle = await this.findOne(id);
+    const effectifVivant = await this.calculerEffectifVivant(id);
+
+    return {
+      cycle_id: cycle.id,
+      numero_cycle: cycle.numero_cycle,
+      cout_total: await this.calculerCoutTotal(id),
+      total_ventes: await this.calculerTotalVentes(id),
+      marge: await this.calculerMarge(id),
+      cout_revient_par_poulet: await this.calculerCoutRevientParPoulet(id),
+      seuil_rentabilite: await this.calculerSeuilRentabilite(id),
+      effectif_vivant: effectifVivant,
     };
   }
 }

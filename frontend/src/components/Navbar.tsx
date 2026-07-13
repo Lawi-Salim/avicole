@@ -1,5 +1,5 @@
 import { Box, HStack, IconButton, Text, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
-import { FiSun, FiMoon, FiLogOut, FiSettings, FiUser } from 'react-icons/fi';
+import { FiSun, FiMoon, FiLogOut, FiSettings, FiUser, FiDollarSign, FiShoppingBag } from 'react-icons/fi';
 import { useThemeMode } from '../theme/ThemeMode';
 import { useAuth } from '../contexts/AuthContext';
 import { UserAvatar } from '../utils/Avatars';
@@ -23,20 +23,55 @@ export default function Navbar() {
       zIndex={100}
     >
       <HStack justify="space-between" maxW="1400px" mx="auto">
-        <HStack
-          spacing={2}
-          cursor="pointer"
-          onClick={() => navigate('/cycles')}
-          _hover={{ opacity: 0.8 }}
-        >
-          <Text fontSize="lg" fontWeight="bold" color="accent.1">
-            AVICOLE
-          </Text>
+        <HStack spacing={4}>
+          <HStack
+            spacing={2}
+            cursor="pointer"
+            onClick={() => navigate('/cycles')}
+            _hover={{ opacity: 0.8 }}
+          >
+            <Text fontSize="lg" fontWeight="bold" color="accent.1">
+              AVICOLE
+            </Text>
+          </HStack>
+
+          <HStack spacing={1}>
+            <Box
+              as="button"
+              px={3}
+              py={1}
+              borderRadius="md"
+              fontSize="sm"
+              color="text.2"
+              _hover={{ bg: 'surface.2' }}
+              onClick={() => navigate('/depenses')}
+            >
+              <HStack spacing={1}>
+                <FiDollarSign />
+                <Text display={{ base: 'none', md: 'block' }}>Depenses</Text>
+              </HStack>
+            </Box>
+            <Box
+              as="button"
+              px={3}
+              py={1}
+              borderRadius="md"
+              fontSize="sm"
+              color="text.2"
+              _hover={{ bg: 'surface.2' }}
+              onClick={() => navigate('/ventes')}
+            >
+              <HStack spacing={1}>
+                <FiShoppingBag />
+                <Text display={{ base: 'none', md: 'block' }}>Ventes</Text>
+              </HStack>
+            </Box>
+          </HStack>
         </HStack>
 
         <HStack spacing={3}>
           <IconButton
-            aria-label="Changer de thème"
+            aria-label="Changer de theme"
             icon={colorMode === 'light' ? <FiMoon /> : <FiSun />}
             onClick={toggleThemeMode}
             variant="ghost"
@@ -67,7 +102,7 @@ export default function Navbar() {
                   icon={<FiSettings />}
                   onClick={() => navigate('/parametrage')}
                 >
-                  Paramétrage
+                  Parametrage
                 </MenuItem>
                 <MenuItem
                   bg="transparent"
@@ -79,7 +114,7 @@ export default function Navbar() {
                     navigate('/login');
                   }}
                 >
-                  Déconnexion
+                  Deconnexion
                 </MenuItem>
               </MenuList>
             </Menu>

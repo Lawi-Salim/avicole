@@ -35,6 +35,11 @@ export class CyclesController {
     return this.cyclesService.getStats(id);
   }
 
+  @Get(':id/finances')
+  getFinances(@Param('id') id: string) {
+    return this.cyclesService.getFinances(id);
+  }
+
   @Post()
   create(
     @Body() dto: CreateCycleDto,
