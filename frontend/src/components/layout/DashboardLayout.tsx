@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import {
   Box,
   Flex,
   HStack,
   VStack,
   Text,
+  Image,
   Input,
   InputGroup,
   InputLeftElement,
@@ -23,18 +24,22 @@ import {
   FiDollarSign,
   FiShoppingBag,
   FiUser,
-  FiBarChart2,
   FiFileText,
   FiSearch,
   FiBell,
   FiSun,
+  FiSidebar,
   FiMoon,
   FiLogOut,
 } from 'react-icons/fi';
+import { MdOutlineCalculate } from "react-icons/md";
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useThemeMode } from '../../theme/ThemeMode';
 import { useAuth } from '../../contexts/AuthContext';
+import { DrawerCalculate } from '../../utils/DrawerCalculate';
 import { UserAvatar } from '../../utils/Avatars';
+import logoDark from '../../assets/img/logo-png-3x.png';
+import logoLight from '../../assets/img/logo-png--3x.png';
 
 interface NavItemProps {
   icon: ReactNode;
@@ -57,14 +62,14 @@ function NavItem({ icon, label, path, isActive, onClick }: NavItemProps) {
       borderRadius="md"
       fontSize="sm"
       fontWeight={isActive ? 'medium' : 'normal'}
-      color={isActive ? 'accent.1' : 'gray.400'}
-      bg={isActive ? 'whiteAlpha.100' : 'transparent'}
+      color={isActive ? 'sidebar.textActive' : 'sidebar.text'}
+      bg={isActive ? 'sidebar.bgActive' : 'transparent'}
       borderLeft={isActive ? '3px solid' : '3px solid transparent'}
-      borderColor={isActive ? 'accent.1' : 'transparent'}
+      borderColor={isActive ? 'sidebar.textActive' : 'transparent'}
       transition="all 0.15s ease"
       _hover={{
-        bg: 'whiteAlpha.100',
-        color: 'gray.200',
+        bg: 'sidebar.bgHover',
+        color: 'sidebar.textHover',
       }}
       onClick={onClick}
       textAlign="left"
@@ -78,12 +83,36 @@ function NavItem({ icon, label, path, isActive, onClick }: NavItemProps) {
 }
 
 function SidebarHeader() {
+  const { colorMode } = useThemeMode();
   return (
-    <HStack justify="space-between" px={4} py={4}>
+    <HStack justify="space-between" borderBottom="1px solid" borderColor="sidebar.userBorder" px={5} py="9.5px">
       <HStack spacing={2}>
-        <Text fontSize="xl" fontWeight="bold" color="accent.1">
-          AVICOLE
-        </Text>
+        <Image
+          src={colorMode === 'light' ? logoLight : logoDark}
+          alt="AVICOLE"
+          h="40px"
+        />
+
+        {/* <Box
+          as="button"
+          w="24px"
+          h="24px"
+          borderRadius="6px"
+          borderWidth="1px"
+          borderColor="border.1"
+          color="text.3"
+          fontSize="12px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          cursor="pointer"
+          transition="all 0.18s"
+          _hover={{ borderColor: 'accent.bdr', color: 'accent.1', bg: 'accent.bg' }}
+          bg="transparent"
+          flexShrink={0}
+        >
+          <FiSidebar />
+        </Box> */}
       </HStack>
     </HStack>
   );
@@ -97,7 +126,7 @@ function SidebarNav() {
     {
       label: 'ADMINISTRATION',
       items: [
-        { icon: <FiHome />, label: 'Vue d\'ensemble', path: '/cycles' },
+        { icon: <FiHome />, label: 'Vue d\'ensemble', path: '/dashboard' },
         { icon: <FiSettings />, label: 'Paramètres', path: '/parametrage' },
         { icon: <FiUsers />, label: 'Utilisateurs', path: '/utilisateurs' },
       ],
@@ -116,7 +145,6 @@ function SidebarNav() {
     {
       label: 'RAPPORTS',
       items: [
-        { icon: <FiBarChart2 />, label: 'Tableau de bord', path: '/dashboard' },
         { icon: <FiFileText />, label: 'Bilans', path: '/bilans' },
       ],
     },
@@ -126,11 +154,11 @@ function SidebarNav() {
     <VStack spacing={0} align="stretch" flex={1} overflowY="auto" px={2} py={2}>
       {sections.map((section, sIdx) => (
         <Box key={section.label}>
-          {sIdx > 0 && <Divider borderColor="whiteAlpha.200" my={3} />}
+          {sIdx > 0 && <Divider borderColor="sidebar.divider" my={3} />}
           <Text
             fontSize="xs"
             fontWeight="semibold"
-            color="gray.500"
+            color="sidebar.section"
             letterSpacing="wider"
             px={3}
             mb={2}
@@ -145,7 +173,7 @@ function SidebarNav() {
                 icon={item.icon}
                 label={item.label}
                 path={item.path}
-                isActive={location.pathname === item.path}
+                isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
                 onClick={() => navigate(item.path)}
               />
             ))}
@@ -171,7 +199,7 @@ function SidebarUser() {
       py={3}
       spacing={3}
       borderTop="1px solid"
-      borderColor="whiteAlpha.200"
+      borderColor="sidebar.userBorder"
     >
       <UserAvatar
         name={user?.nom}
@@ -179,10 +207,10 @@ function SidebarUser() {
         src={user?.photo ?? null}
       />
       <VStack spacing={0} align="start" flex={1} minW={0}>
-        <Text fontSize="sm" fontWeight="medium" color="gray.200" noOfLines={1}>
+        <Text fontSize="sm" fontWeight="medium" color="text.1" noOfLines={1}>
           {user?.nom || 'Utilisateur'}
         </Text>
-        <Text fontSize="xs" color="gray.500" noOfLines={1}>
+        <Text fontSize="xs" color="sidebar.text" noOfLines={1}>
           {user?.email || 'email@avicole.com'}
         </Text>
       </VStack>
@@ -192,8 +220,8 @@ function SidebarUser() {
           icon={<FiLogOut />}
           size="sm"
           variant="ghost"
-          color="gray.500"
-          _hover={{ color: 'red.300', bg: 'whiteAlpha.100' }}
+          color="sidebar.text"
+          _hover={{ color: 'red.300', bg: 'sidebar.bgHover' }}
           onClick={handleLogout}
         />
       </Tooltip>
@@ -201,7 +229,7 @@ function SidebarUser() {
   );
 }
 
-function Navbar() {
+function Navbar({ onCalculatorOpen }: { onCalculatorOpen: () => void }) {
   const { colorMode, toggleThemeMode } = useThemeMode();
 
   return (
@@ -216,14 +244,16 @@ function Navbar() {
       justify="space-between"
       flexShrink={0}
     >
-      <InputGroup maxW="400px" size="md">
+      <InputGroup maxW="400px" size="sm">
         <InputLeftElement pointerEvents="none">
           <FiSearch color="gray.500" />
         </InputLeftElement>
         <Input
           placeholder="Rechercher..."
+          fontSize="sm"
           bg="surface.2"
-          border="none"
+          border="1px solid"
+          borderColor="border.1"
           borderRadius="lg"
           _placeholder={{ color: 'gray.500' }}
           _focus={{ bg: 'surface.3', boxShadow: 'none' }}
@@ -231,11 +261,23 @@ function Navbar() {
       </InputGroup>
 
       <HStack spacing={3}>
+        <Tooltip label="Calculatrice" placement="bottom">
+          <Box position="relative">
+              <IconButton
+              aria-label="Calculatrice"
+              icon={<MdOutlineCalculate size={18} />}
+              size="sm"
+              variant="ghost"
+              color="text.2"
+              onClick={onCalculatorOpen}
+            />
+          </Box>
+        </Tooltip>
         <Tooltip label="Notifications" placement="bottom">
           <Box position="relative">
             <IconButton
               aria-label="Notifications"
-              icon={<FiBell />}
+              icon={<FiBell size={18} />}
               size="sm"
               variant="ghost"
               color="text.2"
@@ -256,7 +298,7 @@ function Navbar() {
 
         <IconButton
           aria-label="Changer de thème"
-          icon={colorMode === 'light' ? <FiMoon /> : <FiSun />}
+          icon={colorMode === 'light' ? <FiMoon size={18} /> : <FiSun size={18} />}
           size="sm"
           variant="ghost"
           color="text.2"
@@ -283,6 +325,8 @@ function Navbar() {
 }
 
 export default function DashboardLayout() {
+  const [showCalculator, setShowCalculator] = useState(false);
+
   return (
     <Flex h="100vh" overflow="hidden">
       {/* Sidebar */}
@@ -290,9 +334,10 @@ export default function DashboardLayout() {
         w="250px"
         minW="250px"
         h="100vh"
-        bg="gray.900"
+        bg="sidebar.bg"
         borderRight="1px solid"
-        borderColor="whiteAlpha.200"
+        borderColor="sidebar.border"
+        boxShadow="sidebar.shadow"
         flexDirection="column"
       >
         {/* Bloc 1: Header */}
@@ -308,7 +353,7 @@ export default function DashboardLayout() {
       {/* Main content area */}
       <Flex flex={1} flexDirection="column" minW={0}>
         {/* Navbar */}
-        <Navbar />
+        <Navbar onCalculatorOpen={() => setShowCalculator(true)} />
 
         {/* Content */}
         <Box
@@ -320,6 +365,8 @@ export default function DashboardLayout() {
           <Outlet />
         </Box>
       </Flex>
+
+      <DrawerCalculate isOpen={showCalculator} onClose={() => setShowCalculator(false)} />
     </Flex>
   );
 }

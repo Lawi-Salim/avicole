@@ -22,7 +22,7 @@ import { VentesModule } from './ventes/ventes.module.js';
     SequelizeModule.forRoot({
       uri: process.env.DATABASE_URL,
       dialect: 'postgres',
-      logging: process.env.NODE_ENV === 'development' ? console.log : false,
+      logging: false,
       models: [User, Cycle, MouvementStock, Mortalite, Parametrage, Depense, Vente],
       synchronize: false,
     }),

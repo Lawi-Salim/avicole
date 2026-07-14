@@ -38,6 +38,7 @@ const CATEGORIE_LABELS: Record<string, string> = {
 export default function Depenses() {
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState('');
+  const [selectedCycleData, setSelectedCycleData] = useState<Cycle | null>(null);
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,6 +62,7 @@ export default function Depenses() {
         if (c.length > 0 && !selectedCycle) {
           const first = c[0]!;
           setSelectedCycle(first.id);
+          setSelectedCycleData(first);
           setForm((prev) => ({ ...prev, cycle_id: first.id }));
         }
       })
@@ -177,12 +179,16 @@ export default function Depenses() {
           value={selectedCycle}
           onChange={(e) => {
             setSelectedCycle(e.target.value);
+            const cycle = cycles.find(c => c.id === e.target.value);
+            setSelectedCycleData(cycle || null);
             setForm((prev) => ({ ...prev, cycle_id: e.target.value }));
             setEditingId(null);
           }}
           bg="surface.1"
           borderColor="border.1"
           maxW="400px"
+          fontSize="sm"
+          h={8}
         >
           {cycles.map((c) => (
             <option key={c.id} value={c.id}>
@@ -193,83 +199,89 @@ export default function Depenses() {
       </Box>
 
       {/* Formulaire */}
-      <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
-        <CardBody>
-          <Heading size="sm" color="text.1" mb={3}>
-            {editingId ? 'Modifier la dépense' : 'Ajouter une dépense'}
-          </Heading>
-          <Box as="form" onSubmit={handleSubmit}>
-            <SimpleGrid columns={{ base: 2, md: 5 }} spacing={3}>
-              <Select
-                value={form.categorie}
-                onChange={(e) => setForm({ ...form, categorie: e.target.value as CreateDepensePayload['categorie'] })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-              >
-                <option value="poussins">Poussins</option>
-                <option value="aliments">Aliments</option>
-                <option value="veterinaire">Vétérinaire</option>
-                <option value="infrastructure">Infrastructure</option>
-                <option value="imprevu">Imprévu</option>
-              </Select>
-              <Input
-                type="number"
-                placeholder="Montant (KMF)"
-                value={form.montant || ''}
-                onChange={(e) => setForm({ ...form, montant: Number(e.target.value) })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-                min={0}
-                required
-              />
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-                required
-              />
-              <Input
-                placeholder="Description (optionnel)"
-                value={form.description || ''}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-              />
-              <HStack>
-                <Button
-                  type="submit"
+      {selectedCycleData?.statut === 'en_cours' ? (
+        <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+          <CardBody>
+            <Heading size="sm" color="text.1" mb={3}>
+              {editingId ? 'Modifier la dépense' : 'Ajouter une dépense'}
+            </Heading>
+            <Box as="form" onSubmit={handleSubmit}>
+              <SimpleGrid columns={{ base: 2, md: 5 }} spacing={3}>
+                <Select
+                  value={form.categorie}
+                  onChange={(e) => setForm({ ...form, categorie: e.target.value as CreateDepensePayload['categorie'] })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
                   size="sm"
-                  bg="accent.1"
-                  color="gray.900"
-                  _hover={{ bg: 'accent.2' }}
-                  leftIcon={<FiPlus />}
-                  isLoading={submitting}
-                  fontWeight="bold"
-                  flex={1}
                 >
-                  {editingId ? 'Modifier' : 'Ajouter'}
-                </Button>
-                {editingId && (
+                  <option value="poussins">Poussins</option>
+                  <option value="aliments">Aliments</option>
+                  <option value="veterinaire">Vétérinaire</option>
+                  <option value="infrastructure">Infrastructure</option>
+                  <option value="imprevu">Imprévu</option>
+                </Select>
+                <Input
+                  type="number"
+                  placeholder="Montant (KMF)"
+                  value={form.montant || ''}
+                  onChange={(e) => setForm({ ...form, montant: Number(e.target.value) })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                  min={0}
+                  required
+                />
+                <Input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                  required
+                />
+                <Input
+                  placeholder="Description (optionnel)"
+                  value={form.description || ''}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                />
+                <HStack>
                   <Button
+                    type="submit"
                     size="sm"
-                    variant="ghost"
-                    color="text.3"
-                    onClick={handleCancelEdit}
+                    bg="accent.1"
+                    color="gray.900"
+                    _hover={{ bg: 'accent.2' }}
+                    leftIcon={<FiPlus />}
+                    isLoading={submitting}
+                    fontWeight="bold"
+                    flex={1}
                   >
-                    Annuler
+                    {editingId ? 'Modifier' : 'Ajouter'}
                   </Button>
-                )}
-              </HStack>
-            </SimpleGrid>
-          </Box>
-        </CardBody>
-      </Card>
+                  {editingId && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      color="text.3"
+                      onClick={handleCancelEdit}
+                    >
+                      Annuler
+                    </Button>
+                  )}
+                </HStack>
+              </SimpleGrid>
+            </Box>
+          </CardBody>
+        </Card>
+      ) : null}
 
       {/* Liste des dépenses */}
       {depenses.length === 0 ? (
@@ -294,28 +306,30 @@ export default function Depenses() {
                   <Td color="text.2">{Number(d.montant).toLocaleString('fr-FR')} KMF</Td>
                   <Td color="text.2" maxW="200px" isTruncated>{d.description || '—'}</Td>
                   <Td>
-                    <HStack spacing={1}>
-                      <Tooltip label="Modifier">
-                        <IconButton
-                          aria-label="Modifier"
-                          icon={<FiEdit2 />}
-                          size="xs"
-                          variant="ghost"
-                          color="accent.1"
-                          onClick={() => handleEdit(d)}
-                        />
-                      </Tooltip>
-                      <Tooltip label="Supprimer">
-                        <IconButton
-                          aria-label="Supprimer"
-                          icon={<FiTrash2 />}
-                          size="xs"
-                          variant="ghost"
-                          color="danger.1"
-                          onClick={() => handleDelete(d.id)}
-                        />
-                      </Tooltip>
-                    </HStack>
+                    {selectedCycleData?.statut === 'en_cours' && (
+                      <HStack spacing={1}>
+                        <Tooltip label="Modifier">
+                          <IconButton
+                            aria-label="Modifier"
+                            icon={<FiEdit2 />}
+                            size="xs"
+                            variant="ghost"
+                            color="accent.1"
+                            onClick={() => handleEdit(d)}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Supprimer">
+                          <IconButton
+                            aria-label="Supprimer"
+                            icon={<FiTrash2 />}
+                            size="xs"
+                            variant="ghost"
+                            color="danger.1"
+                            onClick={() => handleDelete(d.id)}
+                          />
+                        </Tooltip>
+                      </HStack>
+                    )}
                   </Td>
                 </Tr>
               ))}
