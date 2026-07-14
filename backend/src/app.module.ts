@@ -9,6 +9,7 @@ import { Mortalite } from './sante/mortalite.entity.js';
 import { Parametrage } from './parametrages/parametrage.entity.js';
 import { Depense } from './finances/depense.entity.js';
 import { Vente } from './ventes/vente.entity.js';
+import { Client } from './clients/client.entity.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CyclesModule } from './cycles/cycles.module.js';
 import { StocksModule } from './stocks/stocks.module.js';
@@ -16,6 +17,7 @@ import { SanteModule } from './sante/sante.module.js';
 import { ParametragesModule } from './parametrages/parametrages.module.js';
 import { FinancesModule } from './finances/finances.module.js';
 import { VentesModule } from './ventes/ventes.module.js';
+import { ClientsModule } from './clients/clients.module.js';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { VentesModule } from './ventes/ventes.module.js';
       uri: process.env.DATABASE_URL,
       dialect: 'postgres',
       logging: false,
-      models: [User, Cycle, MouvementStock, Mortalite, Parametrage, Depense, Vente],
+      models: [User, Cycle, MouvementStock, Mortalite, Parametrage, Depense, Vente, Client],
       synchronize: false,
     }),
     AuthModule,
@@ -33,6 +35,7 @@ import { VentesModule } from './ventes/ventes.module.js';
     ParametragesModule,
     FinancesModule,
     VentesModule,
+    ClientsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

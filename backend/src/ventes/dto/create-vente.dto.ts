@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsPositive,
   IsString,
 } from 'class-validator';
@@ -11,6 +12,10 @@ export class CreateVenteDto {
   @IsNotEmpty()
   @IsString()
   cycle_id!: string;
+
+  @IsOptional()
+  @IsString()
+  client_id?: string;
 
   @IsNotEmpty()
   @IsInt()
@@ -30,6 +35,6 @@ export class CreateVenteDto {
   mode_paiement!: 'especes' | 'cheque' | 'virement' | 'credit';
 
   @IsNotEmpty()
-  @IsEnum(['paye', 'en_attente', 'annule'])
-  statut_paiement!: 'paye' | 'en_attente' | 'annule';
+  @IsEnum(['paye', 'partiel', 'impaye'])
+  statut_paiement!: 'paye' | 'partiel' | 'impaye';
 }

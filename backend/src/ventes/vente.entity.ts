@@ -8,6 +8,7 @@ import {
   ForeignKey,
 } from 'sequelize-typescript';
 import { Cycle } from '../cycles/cycle.entity.js';
+import { Client } from '../clients/client.entity.js';
 
 @Table({ tableName: 'ventes', timestamps: false })
 export class Vente extends Model {
@@ -18,6 +19,10 @@ export class Vente extends Model {
   @ForeignKey(() => Cycle)
   @Column({ type: DataType.UUID, allowNull: false, onDelete: 'CASCADE' })
   declare cycle_id: string;
+
+  @ForeignKey(() => Client)
+  @Column({ type: DataType.UUID, allowNull: true, onDelete: 'SET NULL' })
+  declare client_id: string | null;
 
   @Column({ type: DataType.INTEGER, allowNull: false })
   declare quantite: number;
@@ -40,8 +45,11 @@ export class Vente extends Model {
     allowNull: false,
     defaultValue: 'paye',
   })
-  declare statut_paiement: 'paye' | 'en_attente' | 'annule';
+  declare statut_paiement: 'paye' | 'partiel' | 'impaye';
 
   @BelongsTo(() => Cycle)
   cycle!: Cycle;
+
+  @BelongsTo(() => Client)
+  client!: Client;
 }
