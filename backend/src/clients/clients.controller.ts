@@ -1,0 +1,50 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { ClientsService } from './clients.service.js';
+import { CreateClientDto } from './dto/create-client.dto.js';
+
+@Controller('clients')
+@UseGuards(JwtAuthGuard)
+export class ClientsController {
+  constructor(@Inject(ClientsService) private readonly clientsService: ClientsService) {}
+
+  @Get()
+  findAll() {
+    return this.clientsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.clientsService.findOne(id);
+  }
+
+  @Get(':id/ventes')
+  getVentesByClient(@Param('id') id: string) {
+    return this.clientsService.getVentesByClient(id);
+  }
+
+  @Post()
+  create(@Body() dto: CreateClientDto) {
+    return this.clientsService.create(dto);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: Partial<CreateClientDto>) {
+    return this.clientsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.clientsService.remove(id);
+  }
+}

@@ -3,20 +3,23 @@ import api from './api';
 export interface Vente {
   id: string;
   cycle_id: string;
+  client_id: string | null;
   quantite: number;
   prix_unitaire: number;
   date: string;
-  mode_paiement: 'especes' | 'cheque' | 'virement' | 'credit';
-  statut_paiement: 'paye' | 'en_attente' | 'annule';
+  mode_paiement: 'especes' | 'mobile_money' | 'virement' | 'cheque' | 'credit';
+  statut_paiement: 'paye' | 'partiel' | 'impaye';
+  client?: { id: string; nom: string; type_client: string };
 }
 
 export interface CreateVentePayload {
   cycle_id: string;
+  client_id?: string;
   quantite: number;
   prix_unitaire: number;
   date: string;
-  mode_paiement: 'especes' | 'cheque' | 'virement' | 'credit';
-  statut_paiement: 'paye' | 'en_attente' | 'annule';
+  mode_paiement: 'especes' | 'mobile_money' | 'virement' | 'cheque' | 'credit';
+  statut_paiement: 'paye' | 'partiel' | 'impaye';
 }
 
 export interface FinancesData {

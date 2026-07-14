@@ -12,6 +12,13 @@ export interface Cycle {
   cout_total?: number;
   mortalite_cumulee?: number;
   taux_mortalite_pct?: number;
+  date_cloture?: string | null;
+  bilan_cout_total?: number | null;
+  bilan_recettes?: number | null;
+  bilan_marge?: number | null;
+  bilan_mortalite_cumulee?: number | null;
+  bilan_cout_revient_par_poulet?: number | null;
+  bilan_seuil_rentabilite?: number | null;
   created_at: string;
   updated_at: string;
   cree_par?: { id: string; nom: string; photo?: string };

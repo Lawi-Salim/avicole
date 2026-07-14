@@ -35,6 +35,7 @@ import { cyclesService, Cycle } from '../services/cycles.service';
 import { stocksService, Stock, CreateStockPayload } from '../services/stocks.service';
 import { santeService, Mortalite, CreateMortalitePayload } from '../services/sante.service';
 import { ventesService, FinancesData } from '../services/ventes.service';
+import ConfirmModal from '../components/ConfirmModal';
 
 const PHASES = [
   { value: 'preparation', label: 'Préparation' },
@@ -64,6 +65,8 @@ export default function CycleDetail() {
   const [success, setSuccess] = useState('');
   const [newPhase, setNewPhase] = useState('');
   const [cloturing, setCloturing] = useState(false);
+  const [deleteStockTargetId, setDeleteStockTargetId] = useState<string | null>(null);
+  const [deleteMortTargetId, setDeleteMortTargetId] = useState<string | null>(null);
 
   // Stock form
   const [stockForm, setStockForm] = useState<CreateStockPayload>({
@@ -165,12 +168,18 @@ export default function CycleDetail() {
   };
 
   const handleDeleteStock = async (stockId: string) => {
-    if (!id) return;
+    setDeleteStockTargetId(stockId);
+  };
+
+  const confirmDeleteStock = async () => {
+    if (!deleteStockTargetId || !id) return;
     try {
-      await stocksService.remove(stockId);
-      setStocks((prev) => prev.filter((s) => s.id !== stockId));
+      await stocksService.remove(deleteStockTargetId);
+      setStocks((prev) => prev.filter((s) => s.id !== deleteStockTargetId));
     } catch {
       setError('Erreur lors de la suppression');
+    } finally {
+      setDeleteStockTargetId(null);
     }
   };
 
@@ -203,12 +212,18 @@ export default function CycleDetail() {
   };
 
   const handleDeleteMortalite = async (mortId: string) => {
-    if (!id) return;
+    setDeleteMortTargetId(mortId);
+  };
+
+  const confirmDeleteMortalite = async () => {
+    if (!deleteMortTargetId || !id) return;
     try {
-      await santeService.remove(mortId);
-      setMortalites((prev) => prev.filter((m) => m.id !== mortId));
+      await santeService.remove(deleteMortTargetId);
+      setMortalites((prev) => prev.filter((m) => m.id !== deleteMortTargetId));
     } catch {
       setError('Erreur lors de la suppression');
+    } finally {
+      setDeleteMortTargetId(null);
     }
   };
 
@@ -688,6 +703,20 @@ export default function CycleDetail() {
           </TabPanel>
         </TabPanels>
       </Tabs>
+      <ConfirmModal
+        isOpen={deleteStockTargetId !== null}
+        onClose={() => setDeleteStockTargetId(null)}
+        onConfirm={confirmDeleteStock}
+        title="Supprimer le mouvement"
+        message="Êtes-vous sûr de vouloir supprimer ce mouvement de stock ? Cette action est irréversible."
+      />
+      <ConfirmModal
+        isOpen={deleteMortTargetId !== null}
+        onClose={() => setDeleteMortTargetId(null)}
+        onConfirm={confirmDeleteMortalite}
+        title="Supprimer la mortalité"
+        message="Êtes-vous sûr de vouloir supprimer cet enregistrement de mortalité ? Cette action est irréversible."
+      />
     </VStack>
   );
 }

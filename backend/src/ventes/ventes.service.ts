@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { Vente } from './vente.entity.js';
 import { Cycle } from '../cycles/cycle.entity.js';
 import { Mortalite } from '../sante/mortalite.entity.js';
+import { Client } from '../clients/client.entity.js';
 import { CreateVenteDto } from './dto/create-vente.dto.js';
 
 @Injectable()
@@ -15,11 +16,19 @@ export class VentesService {
     private readonly cycleModel: typeof Cycle,
     @InjectModel(Mortalite)
     private readonly mortaliteModel: typeof Mortalite,
+    @InjectModel(Client)
+    private readonly clientModel: typeof Client,
   ) {}
 
   async findByCycle(cycleId: string) {
     return this.venteModel.findAll({
       where: { cycle_id: cycleId },
+      include: [
+        {
+          model: this.clientModel,
+          attributes: ['id', 'nom', 'type_client'],
+        },
+      ],
       order: [['date', 'DESC']],
     });
   }
@@ -81,6 +90,7 @@ export class VentesService {
 
     return this.venteModel.create({
       cycle_id: dto.cycle_id,
+      client_id: dto.client_id || null,
       quantite: dto.quantite,
       prix_unitaire: dto.prix_unitaire,
       date: dto.date,

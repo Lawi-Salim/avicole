@@ -34,6 +34,8 @@ import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { ventesService, Vente, CreateVentePayload } from '../services/ventes.service';
 import { santeService, Mortalite } from '../services/sante.service';
+import { clientsService, Client } from '../services/clients.service';
+import ConfirmModal from '../components/ConfirmModal';
 
 const MODE_PAIEMENT_LABELS: Record<string, string> = {
   especes: 'Especes',
@@ -44,18 +46,19 @@ const MODE_PAIEMENT_LABELS: Record<string, string> = {
 
 const STATUT_PAIEMENT_LABELS: Record<string, string> = {
   paye: 'Paye',
-  en_attente: 'En attente',
-  annule: 'Annule',
+  partiel: 'Partiel',
+  impaye: 'Impaye',
 };
 
 const STATUT_COLORS: Record<string, string> = {
   paye: 'success.1',
-  en_attente: 'warning.1',
-  annule: 'danger.1',
+  partiel: 'warning.1',
+  impaye: 'danger.1',
 };
 
 export default function Ventes() {
   const [cycles, setCycles] = useState<Cycle[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [selectedCycle, setSelectedCycle] = useState('');
   const [selectedCycleData, setSelectedCycleData] = useState<Cycle | null>(null);
   const [ventes, setVentes] = useState<Vente[]>([]);
@@ -66,9 +69,11 @@ export default function Ventes() {
   const [submitting, setSubmitting] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const [form, setForm] = useState<CreateVentePayload>({
     cycle_id: '',
+    client_id: '',
     quantite: 0,
     prix_unitaire: 0,
     date: new Date().toISOString().slice(0, 10),
@@ -79,9 +84,13 @@ export default function Ventes() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    cyclesService.getAll()
-      .then((c) => {
+    Promise.all([
+      cyclesService.getAll(),
+      clientsService.getAll(),
+    ])
+      .then(([c, cl]) => {
         setCycles(c);
+        setClients(cl);
         if (c.length > 0 && !selectedCycle) {
           const first = c[0]!;
           setSelectedCycle(first.id);
@@ -89,7 +98,7 @@ export default function Ventes() {
           setForm((prev) => ({ ...prev, cycle_id: first.id }));
         }
       })
-      .catch(() => setError('Erreur lors du chargement des cycles'))
+      .catch(() => setError('Erreur lors du chargement des données'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -144,6 +153,7 @@ export default function Ventes() {
       setEditingId(null);
       setForm({
         cycle_id: selectedCycle,
+        client_id: '',
         quantite: 0,
         prix_unitaire: 0,
         date: new Date().toISOString().slice(0, 10),
@@ -162,6 +172,7 @@ export default function Ventes() {
     setEditingId(v.id);
     setForm({
       cycle_id: v.cycle_id,
+      client_id: v.client_id || '',
       quantite: v.quantite,
       prix_unitaire: v.prix_unitaire,
       date: v.date,
@@ -174,6 +185,7 @@ export default function Ventes() {
     setEditingId(null);
     setForm({
       cycle_id: selectedCycle,
+      client_id: '',
       quantite: 0,
       prix_unitaire: 0,
       date: new Date().toISOString().slice(0, 10),
@@ -183,21 +195,28 @@ export default function Ventes() {
   };
 
   const handleDelete = async (id: string) => {
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await ventesService.remove(id);
-      setVentes((prev) => prev.filter((v) => v.id !== id));
+      await ventesService.remove(deleteTargetId);
+      setVentes((prev) => prev.filter((v) => v.id !== deleteTargetId));
       showSuccess('Vente supprimee');
     } catch {
       setError('Erreur lors de la suppression');
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
   const totalVentes = ventes
-    .filter((v) => v.statut_paiement !== 'annule')
+    .filter((v) => v.statut_paiement !== 'impaye')
     .reduce((sum, v) => sum + Number(v.quantite) * Number(v.prix_unitaire), 0);
 
   const totalQuantite = ventes
-    .filter((v) => v.statut_paiement !== 'annule')
+    .filter((v) => v.statut_paiement !== 'impaye')
     .reduce((sum, v) => sum + Number(v.quantite), 0);
 
   const effectifVivant = selectedCycleData
@@ -205,7 +224,7 @@ export default function Ventes() {
     : 0;
 
   const totalDejaVendu = ventes
-    .filter((v) => v.statut_paiement !== 'annule' && v.id !== editingId)
+    .filter((v) => v.statut_paiement !== 'impaye' && v.id !== editingId)
     .reduce((sum, v) => sum + Number(v.quantite), 0);
 
   const resteDisponible = effectifVivant - totalDejaVendu;
@@ -263,7 +282,7 @@ export default function Ventes() {
               {editingId ? 'Modifier la vente' : 'Ajouter une vente'}
             </Heading>
             <Box as="form" onSubmit={handleSubmit}>
-              <SimpleGrid columns={{ base: 2, md: 6 }} spacing={3}>
+              <SimpleGrid columns={{ base: 2, md: 7 }} spacing={3}>
                 <Input
                   type="number"
                   placeholder="Quantite"
@@ -307,6 +326,7 @@ export default function Ventes() {
                   borderRadius="md"
                 >
                   <option value="especes">Espèces</option>
+                  <option value="mobile_money">Mobile Money</option>
                   <option value="cheque">Chèque</option>
                   <option value="virement">Virement</option>
                   <option value="credit">Crédit</option>
@@ -320,8 +340,21 @@ export default function Ventes() {
                   borderRadius="md"
                 >
                   <option value="paye">Payé</option>
-                  <option value="en_attente">En attente</option>
-                  <option value="annule">Annulé</option>
+                  <option value="partiel">Partiel</option>
+                  <option value="impaye">Impayé</option>
+                </Select>
+                <Select
+                  value={form.client_id || ''}
+                  onChange={(e) => setForm({ ...form, client_id: e.target.value || undefined })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  size="sm"
+                  borderRadius="md"
+                >
+                  <option value="">Sans client</option>
+                  {clients.map((cl) => (
+                    <option key={cl.id} value={cl.id}>{cl.nom}</option>
+                  ))}
                 </Select>
                 <HStack>
                   <Button
@@ -330,7 +363,7 @@ export default function Ventes() {
                     bg="accent.1"
                     color="gray.900"
                     _hover={{ bg: 'accent.2' }}
-                    leftIcon={<FiPlus />}
+                    leftIcon={editingId ? <FiEdit2 /> : <FiPlus />}
                     isLoading={submitting}
                     fontWeight="bold"
                     flex={1}
@@ -340,7 +373,7 @@ export default function Ventes() {
                   {editingId && (
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       color="text.3"
                       onClick={handleCancelEdit}
                     >
@@ -367,6 +400,7 @@ export default function Ventes() {
             <Thead>
               <Tr>
                 <Th color="text.3">Date</Th>
+                <Th color="text.3">Client</Th>
                 <Th color="text.3">Quantite</Th>
                 <Th color="text.3">Prix unitaire</Th>
                 <Th color="text.3">Total</Th>
@@ -379,6 +413,7 @@ export default function Ventes() {
               {ventes.map((v) => (
                 <Tr key={v.id}>
                   <Td color="text.2">{new Date(v.date).toLocaleDateString('fr-FR')}</Td>
+                  <Td color="text.2">{v.client?.nom || '—'}</Td>
                   <Td color="text.2">{v.quantite}</Td>
                   <Td color="text.2">{Number(v.prix_unitaire).toLocaleString('fr-FR')} KMF</Td>
                   <Td color="text.2">{(Number(v.quantite) * Number(v.prix_unitaire)).toLocaleString('fr-FR')} KMF</Td>
@@ -443,6 +478,13 @@ export default function Ventes() {
           </ModalFooter>
         </ModalContent>
       </Modal>
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer la vente"
+        message="Êtes-vous sûr de vouloir supprimer cette vente ? Cette action est irréversible."
+      />
     </VStack>
   );
 }

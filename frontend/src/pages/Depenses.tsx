@@ -26,6 +26,7 @@ import {
 import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { depensesService, Depense, CreateDepensePayload } from '../services/depenses.service';
+import ConfirmModal from '../components/ConfirmModal';
 
 const CATEGORIE_LABELS: Record<string, string> = {
   poussins: 'Poussins',
@@ -44,6 +45,7 @@ export default function Depenses() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const [form, setForm] = useState<CreateDepensePayload>({
     cycle_id: '',
@@ -140,12 +142,19 @@ export default function Depenses() {
   };
 
   const handleDelete = async (id: string) => {
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await depensesService.remove(id);
-      setDepenses((prev) => prev.filter((d) => d.id !== id));
+      await depensesService.remove(deleteTargetId);
+      setDepenses((prev) => prev.filter((d) => d.id !== deleteTargetId));
       showSuccess('Dépense supprimée');
     } catch {
       setError('Erreur lors de la suppression');
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -345,6 +354,13 @@ export default function Depenses() {
           </Text>
         </HStack>
       )}
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer la dépense"
+        message="Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible."
+      />
     </VStack>
   );
 }

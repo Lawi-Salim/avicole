@@ -34,3 +34,4 @@ coverage/
 # Misc
 *.sql
 !db/schema-avicole.sql
+!backend/migrations/*.sql

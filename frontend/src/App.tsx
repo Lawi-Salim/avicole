@@ -9,6 +9,9 @@ import CycleDetail from './pages/CycleDetail';
 import Parametrage from './pages/Parametrage';
 import Depenses from './pages/Depenses';
 import Ventes from './pages/Ventes';
+import Clients from './pages/Clients';
+import ClientDetail from './pages/ClientDetail';
+import Dashboard from './pages/Dashboard';
 import ComingSoon from './pages/ComingSoon';
 import NotFound from './pages/NotFound';
 
@@ -38,11 +41,12 @@ export default function App() {
         <Route path="/parametrage" element={<Parametrage />} />
         <Route path="/depenses" element={<Depenses />} />
         <Route path="/ventes" element={<Ventes />} />
+        <Route path="/clients" element={<Clients />} />
+        <Route path="/clients/:id" element={<ClientDetail />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/utilisateurs" element={<ComingSoon />} />
         <Route path="/stocks" element={<ComingSoon />} />
         <Route path="/sante" element={<ComingSoon />} />
-        <Route path="/clients" element={<ComingSoon />} />
-        <Route path="/dashboard" element={<ComingSoon />} />
         <Route path="/bilans" element={<ComingSoon />} />
       </Route>
       <Route path="*" element={<NotFound />} />
