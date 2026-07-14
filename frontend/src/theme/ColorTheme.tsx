@@ -41,6 +41,18 @@ const semanticTokens = {
     'danger.1': { default: 'red.500', _dark: 'red.300' },
     'success.1': { default: 'green.500', _dark: 'green.300' },
     'warning.1': { default: 'orange.500', _dark: 'yellow.200' },
+
+    'sidebar.bg': { default: 'white', _dark: 'gray.900' },
+    'sidebar.border': { default: 'gray.200', _dark: 'whiteAlpha.200' },
+    'sidebar.text': { default: 'gray.500', _dark: 'gray.400' },
+    'sidebar.textHover': { default: 'gray.700', _dark: 'gray.200' },
+    'sidebar.textActive': { default: 'blue.600', _dark: 'accent.1' },
+    'sidebar.bgActive': { default: 'rgba(66,153,225,0.08)', _dark: 'whiteAlpha.100' },
+    'sidebar.bgHover': { default: 'gray.100', _dark: 'whiteAlpha.100' },
+    'sidebar.section': { default: 'gray.400', _dark: 'gray.500' },
+    'sidebar.divider': { default: 'gray.200', _dark: 'whiteAlpha.200' },
+    'sidebar.userBorder': { default: 'gray.200', _dark: 'whiteAlpha.200' },
+    'sidebar.shadow': { default: '0 2px 8px rgba(0,0,0,0.08)', _dark: 'none' },
   },
 };
 

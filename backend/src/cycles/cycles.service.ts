@@ -168,11 +168,25 @@ export class CyclesService {
   async calculerCoutTotal(cycleId: string): Promise<number> {
     const cycle = await this.findOne(cycleId);
 
-    const totalDepenses = await this.depenseModel.sum('montant', {
+    const depenses = await this.depenseModel.findAll({
       where: { cycle_id: cycleId },
+      attributes: ['montant'],
+      raw: true,
     });
 
-    return parseFloat(((cycle.cout_achat_poussins || 0) + (totalDepenses || 0)).toFixed(2));
+    const totalDepenses = depenses.reduce((sum, d) => sum + parseFloat(d.montant as unknown as string || '0'), 0);
+
+    const coutPoussins = (Number(cycle.cout_achat_poussins) || 0) * (Number(cycle.effectif_initial) || 0);
+    const coutTotal = coutPoussins + totalDepenses;
+
+    console.log('=== DEBUG calculerCoutTotal ===');
+    console.log('cycleId:', cycleId);
+    console.log('cout_achat_poussins:', cycle.cout_achat_poussins, 'x effectif_initial:', cycle.effectif_initial, '= coutPoussins:', coutPoussins);
+    console.log('depenses brutes:', depenses.map(d => d.montant));
+    console.log('totalDepenses:', totalDepenses);
+    console.log('coutTotal final:', coutTotal);
+
+    return parseFloat(coutTotal.toFixed(2));
   }
 
   async calculerTotalVentes(cycleId: string): Promise<number> {
@@ -180,10 +194,11 @@ export class CyclesService {
       where: { cycle_id: cycleId, statut_paiement: { [Op.ne]: 'annule' } },
     });
 
-    const total = ventes.reduce(
-      (sum, v) => sum + parseFloat(v.quantite as unknown as string) * parseFloat(v.prix_unitaire as unknown as string),
-      0,
-    );
+    const total = ventes.reduce((sum, v) => {
+      const qte = Number(v.quantite) || 0;
+      const prix = Number(v.prix_unitaire) || 0;
+      return sum + qte * prix;
+    }, 0);
 
     return parseFloat(total.toFixed(2));
   }
@@ -210,25 +225,45 @@ export class CyclesService {
   }
 
   async calculerSeuilRentabilite(cycleId: string): Promise<number> {
-    const coutTotal = await this.calculerCoutTotal(cycleId);
-    const parametrage = await this.parametrageModel.findOne({ where: { actif: true } });
-    const prixVenteStandard = parametrage?.prix_vente_standard || 0;
-    if (prixVenteStandard <= 0) return 0;
-    return Math.ceil(coutTotal / prixVenteStandard);
+    try {
+      const coutTotal = await this.calculerCoutTotal(cycleId);
+      const parametrage = await this.parametrageModel.findOne({ where: { actif: true } });
+      const prixVenteStandard = parametrage?.prix_vente_standard;
+
+      if (!prixVenteStandard || prixVenteStandard <= 0) {
+        return 0;
+      }
+
+      return Math.ceil(coutTotal / prixVenteStandard);
+    } catch (error) {
+      return 0;
+    }
   }
 
   async getFinances(id: string) {
     const cycle = await this.findOne(id);
     const effectifVivant = await this.calculerEffectifVivant(id);
 
+    let coutTotal = 0;
+    let totalVentes = 0;
+    let marge = 0;
+    let coutRevientParPoulet = 0;
+    let seuilRentabilite = 0;
+
+    try { coutTotal = await this.calculerCoutTotal(id); } catch { coutTotal = 0; }
+    try { totalVentes = await this.calculerTotalVentes(id); } catch { totalVentes = 0; }
+    try { marge = await this.calculerMarge(id); } catch { marge = 0; }
+    try { coutRevientParPoulet = await this.calculerCoutRevientParPoulet(id); } catch { coutRevientParPoulet = 0; }
+    try { seuilRentabilite = await this.calculerSeuilRentabilite(id); } catch { seuilRentabilite = 0; }
+
     return {
       cycle_id: cycle.id,
       numero_cycle: cycle.numero_cycle,
-      cout_total: await this.calculerCoutTotal(id),
-      total_ventes: await this.calculerTotalVentes(id),
-      marge: await this.calculerMarge(id),
-      cout_revient_par_poulet: await this.calculerCoutRevientParPoulet(id),
-      seuil_rentabilite: await this.calculerSeuilRentabilite(id),
+      cout_total: coutTotal,
+      total_ventes: totalVentes,
+      marge,
+      cout_revient_par_poulet: coutRevientParPoulet,
+      seuil_rentabilite: seuilRentabilite,
       effectif_vivant: effectifVivant,
     };
   }

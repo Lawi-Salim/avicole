@@ -22,10 +22,18 @@ import {
   IconButton,
   Tooltip,
   Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
 } from '@chakra-ui/react';
 import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { ventesService, Vente, CreateVentePayload } from '../services/ventes.service';
+import { santeService, Mortalite } from '../services/sante.service';
 
 const MODE_PAIEMENT_LABELS: Record<string, string> = {
   especes: 'Especes',
@@ -49,11 +57,15 @@ const STATUT_COLORS: Record<string, string> = {
 export default function Ventes() {
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState('');
+  const [selectedCycleData, setSelectedCycleData] = useState<Cycle | null>(null);
   const [ventes, setVentes] = useState<Vente[]>([]);
+  const [mortalites, setMortalites] = useState<Mortalite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [form, setForm] = useState<CreateVentePayload>({
     cycle_id: '',
@@ -73,6 +85,7 @@ export default function Ventes() {
         if (c.length > 0 && !selectedCycle) {
           const first = c[0]!;
           setSelectedCycle(first.id);
+          setSelectedCycleData(first);
           setForm((prev) => ({ ...prev, cycle_id: first.id }));
         }
       })
@@ -92,6 +105,13 @@ export default function Ventes() {
 
   useEffect(() => { loadVentes(); }, [loadVentes]);
 
+  useEffect(() => {
+    if (!selectedCycle) return;
+    santeService.getByCycle(selectedCycle)
+      .then((m) => setMortalites(m))
+      .catch(() => setMortalites([]));
+  }, [selectedCycle]);
+
   const showSuccess = (msg: string) => {
     setSuccess(msg);
     setTimeout(() => setSuccess(''), 3000);
@@ -100,6 +120,16 @@ export default function Ventes() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCycle) return;
+
+    if (form.quantite > resteDisponible) {
+      setErrorMessage(
+        `Quantité invalide : Il ne reste que ${resteDisponible} poulets vivants disponibles à la vente. ` +
+        `Effectif vivant : ${effectifVivant}, Déjà vendu : ${totalDejaVendu}.`
+      );
+      setShowErrorModal(true);
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     try {
@@ -170,6 +200,16 @@ export default function Ventes() {
     .filter((v) => v.statut_paiement !== 'annule')
     .reduce((sum, v) => sum + Number(v.quantite), 0);
 
+  const effectifVivant = selectedCycleData
+    ? selectedCycleData.effectif_initial - mortalites.reduce((sum, m) => sum + Number(m.nombre), 0)
+    : 0;
+
+  const totalDejaVendu = ventes
+    .filter((v) => v.statut_paiement !== 'annule' && v.id !== editingId)
+    .reduce((sum, v) => sum + Number(v.quantite), 0);
+
+  const resteDisponible = effectifVivant - totalDejaVendu;
+
   if (loading) {
     return <Box display="flex" justifyContent="center" py={20}><Text color="text.3">Chargement...</Text></Box>;
   }
@@ -197,12 +237,16 @@ export default function Ventes() {
           value={selectedCycle}
           onChange={(e) => {
             setSelectedCycle(e.target.value);
+            const cycle = cycles.find(c => c.id === e.target.value);
+            setSelectedCycleData(cycle || null);
             setForm((prev) => ({ ...prev, cycle_id: e.target.value }));
             setEditingId(null);
           }}
           bg="surface.1"
           borderColor="border.1"
           maxW="400px"
+          fontSize="sm"
+          h={8}
         >
           {cycles.map((c) => (
             <option key={c.id} value={c.id}>
@@ -212,96 +256,108 @@ export default function Ventes() {
         </Select>
       </Box>
 
-      <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
-        <CardBody>
-          <Heading size="sm" color="text.1" mb={3}>
-            {editingId ? 'Modifier la vente' : 'Ajouter une vente'}
-          </Heading>
-          <Box as="form" onSubmit={handleSubmit}>
-            <SimpleGrid columns={{ base: 2, md: 6 }} spacing={3}>
-              <Input
-                type="number"
-                placeholder="Quantite"
-                value={form.quantite || ''}
-                onChange={(e) => setForm({ ...form, quantite: Number(e.target.value) })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-                min={1}
-                required
-              />
-              <Input
-                type="number"
-                placeholder="Prix unitaire (KMF)"
-                value={form.prix_unitaire || ''}
-                onChange={(e) => setForm({ ...form, prix_unitaire: Number(e.target.value) })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-                min={0}
-                required
-              />
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-                required
-              />
-              <Select
-                value={form.mode_paiement}
-                onChange={(e) => setForm({ ...form, mode_paiement: e.target.value as CreateVentePayload['mode_paiement'] })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-              >
-                <option value="especes">Especes</option>
-                <option value="cheque">Cheque</option>
-                <option value="virement">Virement</option>
-                <option value="credit">Credit</option>
-              </Select>
-              <Select
-                value={form.statut_paiement}
-                onChange={(e) => setForm({ ...form, statut_paiement: e.target.value as CreateVentePayload['statut_paiement'] })}
-                bg="surface.2"
-                borderColor="border.1"
-                size="sm"
-              >
-                <option value="paye">Paye</option>
-                <option value="en_attente">En attente</option>
-                <option value="annule">Annule</option>
-              </Select>
-              <HStack>
-                <Button
-                  type="submit"
+      {selectedCycleData?.statut === 'en_cours' ? (
+        <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
+          <CardBody>
+            <Heading size="sm" color="text.1" mb={3}>
+              {editingId ? 'Modifier la vente' : 'Ajouter une vente'}
+            </Heading>
+            <Box as="form" onSubmit={handleSubmit}>
+              <SimpleGrid columns={{ base: 2, md: 6 }} spacing={3}>
+                <Input
+                  type="number"
+                  placeholder="Quantite"
+                  value={form.quantite || ''}
+                  onChange={(e) => setForm({ ...form, quantite: Number(e.target.value) })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
                   size="sm"
-                  bg="accent.1"
-                  color="gray.900"
-                  _hover={{ bg: 'accent.2' }}
-                  leftIcon={<FiPlus />}
-                  isLoading={submitting}
-                  fontWeight="bold"
-                  flex={1}
+                  min={1}
+                  required
+                />
+                <Input
+                  type="number"
+                  placeholder="Prix unitaire (KMF)"
+                  value={form.prix_unitaire || ''}
+                  onChange={(e) => setForm({ ...form, prix_unitaire: Number(e.target.value) })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                  min={0}
+                  required
+                />
+                <Input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                  required
+                />
+                <Select
+                  value={form.mode_paiement}
+                  onChange={(e) => setForm({ ...form, mode_paiement: e.target.value as CreateVentePayload['mode_paiement'] })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  size="sm"
+                  borderRadius="md"
                 >
-                  {editingId ? 'Modifier' : 'Ajouter'}
-                </Button>
-                {editingId && (
+                  <option value="especes">Espèces</option>
+                  <option value="cheque">Chèque</option>
+                  <option value="virement">Virement</option>
+                  <option value="credit">Crédit</option>
+                </Select>
+                <Select
+                  value={form.statut_paiement}
+                  onChange={(e) => setForm({ ...form, statut_paiement: e.target.value as CreateVentePayload['statut_paiement'] })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  size="sm"
+                  borderRadius="md"
+                >
+                  <option value="paye">Payé</option>
+                  <option value="en_attente">En attente</option>
+                  <option value="annule">Annulé</option>
+                </Select>
+                <HStack>
                   <Button
+                    type="submit"
                     size="sm"
-                    variant="ghost"
-                    color="text.3"
-                    onClick={handleCancelEdit}
+                    bg="accent.1"
+                    color="gray.900"
+                    _hover={{ bg: 'accent.2' }}
+                    leftIcon={<FiPlus />}
+                    isLoading={submitting}
+                    fontWeight="bold"
+                    flex={1}
                   >
-                    Annuler
+                    {editingId ? 'Modifier' : 'Ajouter'}
                   </Button>
-                )}
-              </HStack>
-            </SimpleGrid>
-          </Box>
-        </CardBody>
-      </Card>
+                  {editingId && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      color="text.3"
+                      onClick={handleCancelEdit}
+                    >
+                      Annuler
+                    </Button>
+                  )}
+                </HStack>
+              </SimpleGrid>
+            </Box>
+            {selectedCycle && (
+              <Text fontSize="xs" color="text.3" mt={2}>
+                Disponible : {resteDisponible} poulets sur {effectifVivant} vivants
+              </Text>
+            )}
+          </CardBody>
+        </Card>
+      ) : null}
 
       {ventes.length === 0 ? (
         <Text color="text.3" textAlign="center" py={6}>Aucune vente enregistree.</Text>
@@ -333,28 +389,30 @@ export default function Ventes() {
                     </Badge>
                   </Td>
                   <Td>
-                    <HStack spacing={1}>
-                      <Tooltip label="Modifier">
-                        <IconButton
-                          aria-label="Modifier"
-                          icon={<FiEdit2 />}
-                          size="xs"
-                          variant="ghost"
-                          color="accent.1"
-                          onClick={() => handleEdit(v)}
-                        />
-                      </Tooltip>
-                      <Tooltip label="Supprimer">
-                        <IconButton
-                          aria-label="Supprimer"
-                          icon={<FiTrash2 />}
-                          size="xs"
-                          variant="ghost"
-                          color="danger.1"
-                          onClick={() => handleDelete(v.id)}
-                        />
-                      </Tooltip>
-                    </HStack>
+                    {selectedCycleData?.statut === 'en_cours' && (
+                      <HStack spacing={1}>
+                        <Tooltip label="Modifier">
+                          <IconButton
+                            aria-label="Modifier"
+                            icon={<FiEdit2 />}
+                            size="xs"
+                            variant="ghost"
+                            color="accent.1"
+                            onClick={() => handleEdit(v)}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Supprimer">
+                          <IconButton
+                            aria-label="Supprimer"
+                            icon={<FiTrash2 />}
+                            size="xs"
+                            variant="ghost"
+                            color="danger.1"
+                            onClick={() => handleDelete(v.id)}
+                          />
+                        </Tooltip>
+                      </HStack>
+                    )}
                   </Td>
                 </Tr>
               ))}
@@ -370,6 +428,21 @@ export default function Ventes() {
           </Text>
         </HStack>
       )}
+      <Modal isOpen={showErrorModal} onClose={() => setShowErrorModal(false)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color="text.1">Erreur de validation</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="sm">{errorMessage}</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="red" size="sm" onClick={() => setShowErrorModal(false)}>
+              Fermer
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </VStack>
   );
 }

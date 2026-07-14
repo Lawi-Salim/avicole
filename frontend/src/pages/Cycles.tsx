@@ -62,6 +62,8 @@ export default function Cycles() {
           _hover={{ bg: 'accent.2' }}
           fontWeight="bold"
           onClick={() => navigate('/cycles/nouveau')}
+          fontSize="sm"
+          size="sm"
         >
           Nouveau cycle
         </Button>
@@ -75,6 +77,9 @@ export default function Cycles() {
           borderColor="border.1"
           w="auto"
           _focus={{ borderColor: 'accent.1' }}
+          fontSize="sm"
+          size="sm"
+          borderRadius="md"
         >
           <option value="tous">Tous</option>
           <option value="en_cours">En cours</option>

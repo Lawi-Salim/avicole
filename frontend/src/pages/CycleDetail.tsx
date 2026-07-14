@@ -253,6 +253,8 @@ export default function CycleDetail() {
             leftIcon={<FiArrowLeft />}
             color="text.2"
             onClick={() => navigate('/cycles')}
+            fontSize="sm"
+            size="sm"
           >
             Retour
           </Button>
@@ -276,6 +278,7 @@ export default function CycleDetail() {
               borderColor="border.1"
               w="auto"
               size="sm"
+              borderRadius="md"
               _focus={{ borderColor: 'accent.1' }}
             >
               {PHASES.map((p) => (
@@ -314,7 +317,7 @@ export default function CycleDetail() {
           { label: 'Date réception', value: new Date(cycle.date_reception).toLocaleDateString('fr-FR') },
           { label: 'Effectif initial', value: cycle.effectif_initial.toString() },
           { label: 'Phase', value: PHASES.find((p) => p.value === cycle.phase_courante)?.label || cycle.phase_courante },
-          { label: 'Coût total', value: `${Math.round(Number(cycle.cout_total) || (Number(cycle.effectif_initial) * Number(cycle.cout_achat_poussins)) + totalStockCout).toLocaleString('fr-FR')} KMF` },
+          { label: 'Coût total', value: `${Math.round(finances?.cout_total ?? ((Number(cycle.effectif_initial) * Number(cycle.cout_achat_poussins)) + totalStockCout)).toLocaleString('fr-FR')} KMF` },
         ].map(({ label, value }) => (
           <Card key={label} bg="surface.1" borderColor="border.1" borderWidth="1px">
             <CardBody py={3} px={4}>
@@ -340,13 +343,13 @@ export default function CycleDetail() {
       {/* Onglets Stocks / Mortalité */}
       <Tabs variant="enclosed" colorScheme="blue">
         <TabList>
-          <Tab _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
             Stocks ({stocks.length})
           </Tab>
-          <Tab _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
             Mortalite ({mortalites.length})
           </Tab>
-          <Tab _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
             Bilan financier
           </Tab>
         </TabList>
@@ -366,6 +369,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                       >
                         <option value="aliment">Aliment</option>
                         <option value="vaccin">Vaccin</option>
@@ -377,6 +381,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                       >
                         <option value="entree">Entrée</option>
                         <option value="sortie">Sortie</option>
@@ -389,17 +394,19 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         min={0}
                         required
                       />
                       <Input
                         type="number"
-                        placeholder="Coût (FCFA)"
+                        placeholder="Coût (KMF)"
                         value={stockForm.cout || ''}
                         onChange={(e) => setStockForm({ ...stockForm, cout: Number(e.target.value) })}
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         min={0}
                         required
                       />
@@ -410,6 +417,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         required
                       />
                       <Input
@@ -419,6 +427,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         required
                       />
                     </SimpleGrid>
@@ -514,6 +523,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         required
                       />
                       <Input
@@ -524,6 +534,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         min={1}
                         required
                       />
@@ -534,6 +545,7 @@ export default function CycleDetail() {
                         bg="surface.2"
                         borderColor="border.1"
                         size="sm"
+                        borderRadius="md"
                         required
                       />
                       <Button

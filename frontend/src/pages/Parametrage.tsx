@@ -68,8 +68,8 @@ export default function Parametrage() {
   }
 
   const fields = [
-    { key: 'cout_standard_poussin' as const, label: 'Coût standard poussin (FCFA)', type: 'number' },
-    { key: 'prix_vente_standard' as const, label: 'Prix de vente standard (FCFA)', type: 'number' },
+    { key: 'cout_standard_poussin' as const, label: 'Coût standard poussin (KMF)', type: 'number' },
+    { key: 'prix_vente_standard' as const, label: 'Prix de vente standard (KMF)', type: 'number' },
     { key: 'seuil_mortalite_critique_pct' as const, label: 'Seuil mortalité critique (%)', type: 'number' },
     { key: 'seuil_stock_bas_jours' as const, label: 'Seuil stock bas (jours)', type: 'number' },
   ];

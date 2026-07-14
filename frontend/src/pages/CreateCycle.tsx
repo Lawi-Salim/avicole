@@ -77,6 +77,8 @@ export default function CreateCycle() {
                 _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
                 placeholder="Ex: CYC-2026-001"
                 required
+                h={8}
+                fontSize="sm"
               />
             </Box>
 
@@ -90,6 +92,8 @@ export default function CreateCycle() {
                 borderColor="border.1"
                 _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
                 required
+                h={8}
+                fontSize="sm"
               />
             </Box>
 
@@ -105,6 +109,8 @@ export default function CreateCycle() {
                 placeholder="Nombre de poussins"
                 min={0}
                 required
+                h={8}
+                fontSize="sm"
               />
             </Box>
 
@@ -120,6 +126,8 @@ export default function CreateCycle() {
                 placeholder="Coût par poussin"
                 min={0}
                 required
+                h={8}
+                fontSize="sm"
               />
             </Box>
 
@@ -131,6 +139,7 @@ export default function CreateCycle() {
               w="full"
               isLoading={loading}
               fontWeight="bold"
+              size="sm"
             >
               Créer le cycle
             </Button>
