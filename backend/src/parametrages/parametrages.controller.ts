@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -18,9 +19,19 @@ import { UpdateParametrageDto } from './dto/update-parametrage.dto.js';
 export class ParametragesController {
   constructor(@Inject(ParametragesService) private readonly parametragesService: ParametragesService) {}
 
+  @Get('current')
+  getCurrent() {
+    return this.parametragesService.getActif();
+  }
+
   @Get()
   getActif() {
     return this.parametragesService.getActif();
+  }
+
+  @Put('current')
+  updateCurrent(@Body() dto: UpdateParametrageDto) {
+    return this.parametragesService.updateCurrent(dto);
   }
 
   @Post()

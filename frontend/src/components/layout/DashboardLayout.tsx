@@ -31,6 +31,7 @@ import {
   FiSidebar,
   FiMoon,
   FiLogOut,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 import { MdOutlineCalculate } from "react-icons/md";
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -157,6 +158,7 @@ function SidebarNav() {
       items: [
         { icon: <FiGrid />, label: 'Cycles', path: '/cycles' },
         { icon: <FiPackage />, label: 'Stocks', path: '/stocks' },
+        { icon: <FiPackage />, label: 'Produits vétérinaires', path: '/produits-veterinaires' },
         { icon: <FiHeart />, label: 'Santé', path: '/sante' },
         { icon: <FiDollarSign />, label: 'Finances', path: '/depenses' },
         { icon: <FiShoppingBag />, label: 'Ventes', path: '/ventes' },
@@ -166,6 +168,7 @@ function SidebarNav() {
     {
       label: 'RAPPORTS',
       items: [
+        { icon: <FiAlertTriangle />, label: 'Risques', path: '/risques' },
         { icon: <FiFileText />, label: 'Bilans', path: '/bilans' },
       ],
     },

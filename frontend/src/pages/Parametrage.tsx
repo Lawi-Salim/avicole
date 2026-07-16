@@ -14,9 +14,24 @@ import {
   SimpleGrid,
   Spinner,
   Center,
+  Badge,
 } from '@chakra-ui/react';
 import { parametragesService } from '../services/parametrages.service';
 import type { Parametrage } from '../services/parametrages.service';
+
+const DEFAULTS = {
+  cout_standard_poussin: 0,
+  prix_vente_standard: 0,
+  seuil_mortalite_critique_pct: 5,
+  seuil_stock_bas_jours: 3,
+};
+
+const FIELDS = [
+  { key: 'cout_standard_poussin' as const, label: 'Coût standard poussin (KMF)', desc: 'Coût d\'achat unitaire des poussins' },
+  { key: 'prix_vente_standard' as const, label: 'Prix de vente standard (KMF)', desc: 'Prix de vente unitaire recommandé' },
+  { key: 'seuil_mortalite_critique_pct' as const, label: 'Seuil mortalité critique (%)', desc: 'Pourcentage déclenchant une alerte criticité' },
+  { key: 'seuil_stock_bas_jours' as const, label: 'Seuil stock bas (jours)', desc: 'Nombre de jours de stock restant déclenchant une alerte' },
+];
 
 export default function Parametrage() {
   const [data, setData] = useState<Parametrage | null>(null);
@@ -26,9 +41,9 @@ export default function Parametrage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    parametragesService.getAll()
-      .then((res) => { const first = res[0]; if (first) setData(first); })
-      .catch(() => setError('Erreur lors du chargement des paramétrages'))
+    parametragesService.getCurrent()
+      .then((res) => setData(res))
+      .catch(() => setError('Erreur lors du chargement du paramétrage'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,7 +53,7 @@ export default function Parametrage() {
     setError('');
     setSuccess(false);
     try {
-      const updated = await parametragesService.update(data.id, {
+      const updated = await parametragesService.updateCurrent({
         cout_standard_poussin: data.cout_standard_poussin,
         prix_vente_standard: data.prix_vente_standard,
         seuil_mortalite_critique_pct: data.seuil_mortalite_critique_pct,
@@ -58,25 +73,23 @@ export default function Parametrage() {
     return <Center py={20}><Spinner size="xl" color="accent.1" /></Center>;
   }
 
-  if (!data) {
-    return (
-      <Alert bg="danger.1" color="white" borderRadius="md">
-        <AlertIcon />
-        Aucun paramétrage trouvé.
-      </Alert>
-    );
-  }
-
-  const fields = [
-    { key: 'cout_standard_poussin' as const, label: 'Coût standard poussin (KMF)', type: 'number' },
-    { key: 'prix_vente_standard' as const, label: 'Prix de vente standard (KMF)', type: 'number' },
-    { key: 'seuil_mortalite_critique_pct' as const, label: 'Seuil mortalité critique (%)', type: 'number' },
-    { key: 'seuil_stock_bas_jours' as const, label: 'Seuil stock bas (jours)', type: 'number' },
-  ];
+  const form = data || DEFAULTS;
 
   return (
     <VStack spacing={6} align="stretch">
-      <Heading size="lg" color="text.1">Paramétrage</Heading>
+      <HStack justify="space-between" flexWrap="wrap" gap={2}>
+        <Heading size="lg" color="text.1">Paramétrage</Heading>
+        <Badge bg="accent.1" color="gray.900" borderRadius="full" px={3} py={1} fontSize="xs">
+          Configuration globale
+        </Badge>
+      </HStack>
+
+      {!data && (
+        <Alert bg="warning.1" color="white" borderRadius="md" size="sm">
+          <AlertIcon />
+          Aucun paramétrage actif. Définissez les valeurs par défaut ci-dessous.
+        </Alert>
+      )}
 
       {error && (
         <Alert bg="danger.1" color="white" borderRadius="md" size="sm">
@@ -95,17 +108,20 @@ export default function Parametrage() {
       <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
         <CardBody>
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            {fields.map(({ key, label, type }) => (
+            {FIELDS.map(({ key, label, desc }) => (
               <Box key={key}>
-                <Text mb={1} fontSize="sm" color="text.2">{label}</Text>
+                <Text mb={1} fontSize="sm" color="text.2" fontWeight="medium">{label}</Text>
                 <Input
-                  type={type}
-                  value={data[key]}
-                  onChange={(e) => setData({ ...data, [key]: Number(e.target.value) })}
+                  type="number"
+                  value={form[key]}
+                  onChange={(e) => setData({ ...form, [key]: Number(e.target.value) } as Parametrage)}
                   bg="surface.2"
                   borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
                   _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
                 />
+                <Text mt={1} fontSize="xs" color="text.3">{desc}</Text>
               </Box>
             ))}
           </SimpleGrid>
@@ -118,8 +134,9 @@ export default function Parametrage() {
               onClick={handleSave}
               isLoading={saving}
               fontWeight="bold"
+              size="sm"
             >
-              Sauvegarder
+              {data ? 'Sauvegarder' : 'Créer le paramétrage'}
             </Button>
           </HStack>
         </CardBody>

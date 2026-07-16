@@ -20,13 +20,16 @@ import {
   Alert,
   AlertIcon,
   HStack,
+  Badge,
+  IconButton,
 } from '@chakra-ui/react';
-import { FiArrowUpRight, FiArrowDownRight } from 'react-icons/fi';
+import { FiArrowUpRight, FiArrowDownRight, FiCheck, FiAlertTriangle, FiAlertCircle, FiInfo } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { santeService, Mortalite } from '../services/sante.service';
 import { ventesService, Vente } from '../services/ventes.service';
 import { depensesService, Depense } from '../services/depenses.service';
+import { alertesService, Alerte } from '../services/alertes.service';
 import Pagination from '../components/Pagination';
 
 const TREND_THRESHOLD = 0.05;
@@ -56,11 +59,16 @@ export default function Dashboard() {
   const [ventes, setVentes] = useState<Vente[]>([]);
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [closedCycles, setClosedCycles] = useState<Cycle[]>([]);
+  const [alertes, setAlertes] = useState<Alerte[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const allCycles = await cyclesService.getAll();
+      const [allCycles, alertesData] = await Promise.all([
+        cyclesService.getAll(),
+        alertesService.getNonResolues(),
+      ]);
       setCycles(allCycles);
+      setAlertes(alertesData);
 
       const enCours = allCycles.find((c) => c.statut === 'en_cours');
       const clotures = allCycles.filter((c) => c.statut === 'cloture');
@@ -139,6 +147,39 @@ export default function Dashboard() {
     : 0;
   const margeTrend = prevMarge !== 0 ? ((currMarge - prevMarge) / Math.abs(prevMarge)) * 100 : 0;
 
+  const handleResolveAlerte = async (id: string) => {
+    try {
+      await alertesService.markAsResolue(id);
+      setAlertes((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      // silent
+    }
+  };
+
+  const getAlerteIcon = (niveau: string) => {
+    switch (niveau) {
+      case 'critical': return <FiAlertCircle />;
+      case 'warning': return <FiAlertTriangle />;
+      default: return <FiInfo />;
+    }
+  };
+
+  const getAlerteColor = (niveau: string) => {
+    switch (niveau) {
+      case 'critical': return 'danger.1';
+      case 'warning': return 'orange.400';
+      default: return 'blue.400';
+    }
+  };
+
+  const getAlerteBg = (niveau: string) => {
+    switch (niveau) {
+      case 'critical': return 'rgba(229,62,62,0.12)';
+      case 'warning': return 'rgba(237,137,54,0.12)';
+      default: return 'rgba(66,153,225,0.12)';
+    }
+  };
+
   if (loading) {
     return <Box display="flex" justifyContent="center" py={20}><Spinner size="xl" color="accent.1" /></Box>;
   }
@@ -152,6 +193,62 @@ export default function Dashboard() {
           <AlertIcon />
           {error}
         </Alert>
+      )}
+
+      {alertes.length > 0 && (
+        <Box>
+          <HStack justify="space-between" mb={3}>
+            <Heading size="md" color="text.1">Alertes actives</Heading>
+            <Badge bg="danger.1" color="white" borderRadius="full" px={2}>
+              {alertes.length}
+            </Badge>
+          </HStack>
+          <VStack spacing={2} align="stretch">
+            {alertes.map((alerte) => (
+              <Card
+                key={alerte.id}
+                bg={getAlerteBg(alerte.niveau)}
+                borderColor={getAlerteColor(alerte.niveau)}
+                borderWidth="1px"
+                size="sm"
+              >
+                <CardBody py={2} px={3}>
+                  <HStack justify="space-between" align="center">
+                    <HStack spacing={2} flex={1}>
+                      <Box color={getAlerteColor(alerte.niveau)}>
+                        {getAlerteIcon(alerte.niveau)}
+                      </Box>
+                      <Text fontSize="sm" color="text.1" flex={1}>{alerte.message}</Text>
+                      <Badge fontSize="xs" colorScheme={alerte.niveau === 'critical' ? 'red' : alerte.niveau === 'warning' ? 'orange' : 'blue'}>
+                        {alerte.type_alerte === 'stock_bas' ? 'Stock' : alerte.type_alerte === 'mortalite_anormale' ? 'Mortalité' : alerte.type_alerte === 'peremption_produit' ? 'Péremption' : 'Risque'}
+                      </Badge>
+                    </HStack>
+                    <HStack spacing={1}>
+                      {alerte.type_alerte === 'risque' && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          color="accent.1"
+                          onClick={() => navigate('/risques')}
+                        >
+                          Voir risques
+                        </Button>
+                      )}
+                      <IconButton
+                        aria-label="Marquer comme résolue"
+                        icon={<FiCheck />}
+                        size="xs"
+                        variant="ghost"
+                        color="success.1"
+                        onClick={() => handleResolveAlerte(alerte.id)}
+                      />
+                    </HStack>
+                  </HStack>
+                </CardBody>
+              </Card>
+            ))}
+          </VStack>
+        </Box>
       )}
 
       <Box>
