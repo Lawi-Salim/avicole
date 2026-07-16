@@ -31,8 +31,8 @@ export class CreateVenteDto {
   date!: string;
 
   @IsNotEmpty()
-  @IsEnum(['especes', 'cheque', 'virement', 'credit'])
-  mode_paiement!: 'especes' | 'cheque' | 'virement' | 'credit';
+  @IsEnum(['especes', 'mobile_money', 'cheque', 'virement', 'credit'])
+  mode_paiement!: 'especes' | 'mobile_money' | 'cheque' | 'virement' | 'credit';
 
   @IsNotEmpty()
   @IsEnum(['paye', 'partiel', 'impaye'])

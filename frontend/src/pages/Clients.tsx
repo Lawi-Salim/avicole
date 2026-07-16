@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -29,10 +29,13 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  InputGroup,
+  InputLeftElement,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiSearch, FiUser } from 'react-icons/fi';
 import { clientsService, Client, CreateClientPayload } from '../services/clients.service';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 
 const TYPE_LABELS: Record<string, string> = {
   menage: 'Ménage',
@@ -50,6 +53,8 @@ const TYPE_COLORS: Record<string, string> = {
   revendeur: '#38A169 ',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function Clients() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
@@ -60,6 +65,11 @@ export default function Clients() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('tous');
+  const [sortBy, setSortBy] = useState('nom');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [form, setForm] = useState<CreateClientPayload>({
     nom: '',
@@ -133,6 +143,35 @@ export default function Clients() {
       setDeleteTargetId(null);
     }
   };
+
+  const filteredClients = useMemo(() => {
+    let result = [...clients];
+
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((c) => c.nom.toLowerCase().includes(q));
+    }
+
+    if (filterType !== 'tous') {
+      result = result.filter((c) => c.type_client === filterType);
+    }
+
+    if (sortBy === 'nom') {
+      result.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    } else if (sortBy === 'type') {
+      result.sort((a, b) => a.type_client.localeCompare(b.type_client));
+    }
+
+    return result;
+  }, [clients, search, filterType, sortBy]);
+
+  const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => { setCurrentPage(1); }, [search, filterType, sortBy]);
 
   if (loading) {
     return <Box display="flex" justifyContent="center" py={20}><Text color="text.3">Chargement...</Text></Box>;
@@ -226,8 +265,57 @@ export default function Clients() {
         </CardBody>
       </Card>
 
-      {clients.length === 0 ? (
-        <Text color="text.3" textAlign="center" py={6}>Aucun client enregistré.</Text>
+      <HStack spacing={3} flexWrap="wrap">
+        <InputGroup maxW="300px" size="sm">
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="gray.500" />
+          </InputLeftElement>
+          <Input
+            placeholder="Rechercher un client..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            bg="surface.1"
+            borderColor="border.1"
+            borderRadius="md"
+            fontSize="sm"
+          />
+        </InputGroup>
+        <Select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          bg="surface.1"
+          borderColor="border.1"
+          w="auto"
+          fontSize="sm"
+          size="sm"
+          borderRadius="md"
+        >
+          <option value="tous">Tous les types</option>
+          <option value="menage">Ménage</option>
+          <option value="restaurant">Restaurant</option>
+          <option value="hotel">Hôtel</option>
+          <option value="boucherie">Boucherie</option>
+          <option value="revendeur">Revendeur</option>
+        </Select>
+        <Select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          bg="surface.1"
+          borderColor="border.1"
+          w="auto"
+          fontSize="sm"
+          size="sm"
+          borderRadius="md"
+        >
+          <option value="nom">Trier par nom</option>
+          <option value="type">Trier par type</option>
+        </Select>
+      </HStack>
+
+      {filteredClients.length === 0 ? (
+        <Text color="text.3" textAlign="center" py={6}>
+          {clients.length === 0 ? 'Aucun client enregistré.' : 'Aucun client ne correspond aux filtres.'}
+        </Text>
       ) : (
         <Box overflowX="auto">
           <Table size="sm" variant="simple">
@@ -240,7 +328,7 @@ export default function Clients() {
               </Tr>
             </Thead>
             <Tbody>
-              {clients.map((c) => (
+              {paginatedClients.map((c) => (
                 <Tr
                   key={c.id}
                   cursor="pointer"
@@ -265,6 +353,16 @@ export default function Clients() {
                   <Td color="text.2">{c.contact || '—'}</Td>
                   <Td onClick={(e) => e.stopPropagation()}>
                     <HStack spacing={1}>
+                      <Tooltip label="Voir">
+                        <IconButton
+                          aria-label="Voir"
+                          icon={<FiUser />}
+                          size="xs"
+                          variant="ghost"
+                          color="text.3"
+                          onClick={() => navigate(`/clients/${c.id}`)}
+                        />
+                      </Tooltip>
                       <Tooltip label="Modifier">
                         <IconButton
                           aria-label="Modifier"
@@ -294,9 +392,11 @@ export default function Clients() {
         </Box>
       )}
 
-      {clients.length > 0 && (
-        <HStack justify="flex-end">
+      {filteredClients.length > 0 && (
+        <HStack justify="space-between">
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           <Text fontSize="sm" color="text.3">
+            {filteredClients.length !== clients.length && `${filteredClients.length} sur `}
             Total: <strong color="text.1">{clients.length} client{clients.length > 1 ? 's' : ''}</strong>
           </Text>
         </HStack>
