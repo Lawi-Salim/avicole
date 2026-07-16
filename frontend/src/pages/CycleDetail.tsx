@@ -29,8 +29,15 @@ import {
   AlertIcon,
   IconButton,
   Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
 } from '@chakra-ui/react';
-import { FiArrowLeft, FiPlus, FiTrash2, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiTrash2, FiCheck, FiEdit2 } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { stocksService, Stock, CreateStockPayload } from '../services/stocks.service';
 import { santeService, Mortalite, CreateMortalitePayload } from '../services/sante.service';
@@ -67,6 +74,15 @@ export default function CycleDetail() {
   const [cloturing, setCloturing] = useState(false);
   const [deleteStockTargetId, setDeleteStockTargetId] = useState<string | null>(null);
   const [deleteMortTargetId, setDeleteMortTargetId] = useState<string | null>(null);
+  const [showClotureWarning, setShowClotureWarning] = useState(false);
+  const [ventesImpayes, setVentesImpayes] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    date_reception: '',
+    effectif_initial: 0,
+    cout_achat_poussins: 0,
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   // Stock form
   const [stockForm, setStockForm] = useState<CreateStockPayload>({
@@ -139,6 +155,50 @@ export default function CycleDetail() {
       setError('Erreur lors de la clôture');
     } finally {
       setCloturing(false);
+    }
+  };
+
+  const checkVentesImpayes = async () => {
+    if (!id) return;
+    try {
+      const ventes = await ventesService.getByCycle(id);
+      const impayes = ventes.filter(
+        (v) => v.statut_paiement === 'impaye' || v.statut_paiement === 'partiel'
+      ).length;
+      if (impayes > 0) {
+        setVentesImpayes(impayes);
+        setShowClotureWarning(true);
+      } else {
+        handleCloture();
+      }
+    } catch {
+      setError('Erreur lors de la vérification des ventes');
+    }
+  };
+
+  const handleEditClick = () => {
+    if (!cycle) return;
+    setEditForm({
+      date_reception: cycle.date_reception?.split('T')[0] || '',
+      effectif_initial: cycle.effectif_initial,
+      cout_achat_poussins: cycle.cout_achat_poussins || 0,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!id) return;
+    setEditLoading(true);
+    setError('');
+    try {
+      const updated = await cyclesService.update(id, editForm);
+      setCycle(updated);
+      setShowEditModal(false);
+      showSuccess('Cycle modifié avec succès');
+    } catch {
+      setError('Erreur lors de la modification du cycle');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -274,6 +334,18 @@ export default function CycleDetail() {
             Retour
           </Button>
           <Heading size="lg" color="text.1">{cycle.numero_cycle}</Heading>
+          {cycle.statut === 'en_cours' && (
+            <Tooltip label="Modifier le cycle">
+              <IconButton
+                aria-label="Modifier le cycle"
+                icon={<FiEdit2 />}
+                size="xs"
+                variant="ghost"
+                color="accent.1"
+                onClick={handleEditClick}
+              />
+            </Tooltip>
+          )}
           <Badge
             bg={cycle.statut === 'en_cours' ? 'success.1' : 'surface.3'}
             color={cycle.statut === 'en_cours' ? 'white' : 'text.2'}
@@ -316,7 +388,7 @@ export default function CycleDetail() {
               bg="danger.1"
               color="white"
               _hover={{ opacity: 0.8 }}
-              onClick={handleCloture}
+              onClick={checkVentesImpayes}
               isLoading={cloturing}
               fontWeight="bold"
             >
@@ -717,6 +789,91 @@ export default function CycleDetail() {
         title="Supprimer la mortalité"
         message="Êtes-vous sûr de vouloir supprimer cet enregistrement de mortalité ? Cette action est irréversible."
       />
+      <Modal isOpen={showClotureWarning} onClose={() => setShowClotureWarning(false)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color="text.1">Impossible de clôturer le cycle</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="sm">
+              Ce cycle ne peut pas être clôturé car il y a {ventesImpayes} vente{ventesImpayes > 1 ? 's' : ''} impayée{ventesImpayes > 1 ? 's' : ''} ou partiellement payée{ventesImpayes > 1 ? 's' : ''}.
+            </Text>
+            <Text fontSize="sm" mt={2} color="text.3">
+              Veuillez marquer ces ventes comme payées avant de clôturer le cycle.
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" size="sm" onClick={() => setShowClotureWarning(false)}>
+              Compris
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} size="md" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader color="text.1">Modifier le cycle #{cycle?.numero_cycle}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={3}>
+              <Box w="full">
+                <Text fontSize="sm" color="text.3" mb={1}>Date de réception</Text>
+                <Input
+                  type="date"
+                  value={editForm.date_reception}
+                  onChange={(e) => setEditForm({ ...editForm, date_reception: e.target.value })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                />
+              </Box>
+              <Box w="full">
+                <Text fontSize="sm" color="text.3" mb={1}>Effectif initial</Text>
+                <Input
+                  type="number"
+                  value={editForm.effectif_initial}
+                  onChange={(e) => setEditForm({ ...editForm, effectif_initial: Number(e.target.value) })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                  min={1}
+                />
+              </Box>
+              <Box w="full">
+                <Text fontSize="sm" color="text.3" mb={1}>Coût d'achat des poussins (KMF)</Text>
+                <Input
+                  type="number"
+                  value={editForm.cout_achat_poussins}
+                  onChange={(e) => setEditForm({ ...editForm, cout_achat_poussins: Number(e.target.value) })}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderRadius="md"
+                  size="sm"
+                  min={0}
+                />
+              </Box>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" size="sm" onClick={() => setShowEditModal(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              bg="accent.1"
+              color="gray.900"
+              _hover={{ bg: 'accent.2' }}
+              isLoading={editLoading}
+              fontWeight="bold"
+              onClick={handleEditSubmit}
+            >
+              Enregistrer
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </VStack>
   );
 }

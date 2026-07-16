@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -29,25 +30,29 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  InputGroup,
+  InputLeftElement,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiSearch, FiExternalLink, FiCheckCircle } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { ventesService, Vente, CreateVentePayload } from '../services/ventes.service';
 import { santeService, Mortalite } from '../services/sante.service';
 import { clientsService, Client } from '../services/clients.service';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 
 const MODE_PAIEMENT_LABELS: Record<string, string> = {
-  especes: 'Especes',
-  cheque: 'Cheque',
+  especes: 'Espèces',
+  mobile_money: 'Mobile Money',
+  cheque: 'Chèque',
   virement: 'Virement',
-  credit: 'Credit',
+  credit: 'Crédit',
 };
 
 const STATUT_PAIEMENT_LABELS: Record<string, string> = {
-  paye: 'Paye',
+  paye: 'Payé',
   partiel: 'Partiel',
-  impaye: 'Impaye',
+  impaye: 'Impayé',
 };
 
 const STATUT_COLORS: Record<string, string> = {
@@ -56,7 +61,10 @@ const STATUT_COLORS: Record<string, string> = {
   impaye: 'danger.1',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function Ventes() {
+  const navigate = useNavigate();
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedCycle, setSelectedCycle] = useState('');
@@ -70,6 +78,10 @@ export default function Ventes() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const [searchClient, setSearchClient] = useState('');
+  const [filterStatut, setFilterStatut] = useState('tous');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [form, setForm] = useState<CreateVentePayload>({
     cycle_id: '',
@@ -145,10 +157,10 @@ export default function Ventes() {
       const payload = { ...form, cycle_id: selectedCycle };
       if (editingId) {
         await ventesService.update(editingId, payload);
-        showSuccess('Vente modifiee');
+        showSuccess('Vente modifiée');
       } else {
         await ventesService.create(payload);
-        showSuccess('Vente ajoutee');
+        showSuccess('Vente ajoutée');
       }
       setEditingId(null);
       setForm({
@@ -161,7 +173,8 @@ export default function Ventes() {
         statut_paiement: 'paye',
       });
       await loadVentes();
-    } catch {
+    } catch (err: unknown) {
+      console.error('Erreur création vente:', (err as any)?.response?.data);
       setError(editingId ? 'Erreur lors de la modification' : "Erreur lors de l'ajout");
     } finally {
       setSubmitting(false);
@@ -203,7 +216,7 @@ export default function Ventes() {
     try {
       await ventesService.remove(deleteTargetId);
       setVentes((prev) => prev.filter((v) => v.id !== deleteTargetId));
-      showSuccess('Vente supprimee');
+      showSuccess('Vente supprimée');
     } catch {
       setError('Erreur lors de la suppression');
     } finally {
@@ -211,11 +224,45 @@ export default function Ventes() {
     }
   };
 
-  const totalVentes = ventes
+  const handleMarkAsPaid = async (id: string) => {
+    try {
+      await ventesService.update(id, { statut_paiement: 'paye' });
+      setVentes((prev) =>
+        prev.map((v) => (v.id === id ? { ...v, statut_paiement: 'paye' as const } : v))
+      );
+      showSuccess('Vente marquée comme payée');
+    } catch {
+      setError('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  const filteredVentes = useMemo(() => {
+    let result = [...ventes];
+    if (searchClient) {
+      const q = searchClient.toLowerCase();
+      result = result.filter((v) =>
+        v.client?.nom.toLowerCase().includes(q)
+      );
+    }
+    if (filterStatut !== 'tous') {
+      result = result.filter((v) => v.statut_paiement === filterStatut);
+    }
+    return result;
+  }, [ventes, searchClient, filterStatut]);
+
+  const totalPages = Math.ceil(filteredVentes.length / ITEMS_PER_PAGE);
+  const paginatedVentes = filteredVentes.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => { setCurrentPage(1); }, [searchClient, filterStatut]);
+
+  const totalVentesFiltered = filteredVentes
     .filter((v) => v.statut_paiement !== 'impaye')
     .reduce((sum, v) => sum + Number(v.quantite) * Number(v.prix_unitaire), 0);
 
-  const totalQuantite = ventes
+  const totalQuantiteFiltered = filteredVentes
     .filter((v) => v.statut_paiement !== 'impaye')
     .reduce((sum, v) => sum + Number(v.quantite), 0);
 
@@ -228,6 +275,10 @@ export default function Ventes() {
     .reduce((sum, v) => sum + Number(v.quantite), 0);
 
   const resteDisponible = effectifVivant - totalDejaVendu;
+
+  const totalImpayeCycle = ventes
+    .filter((v) => v.statut_paiement === 'impaye' && v.id !== editingId)
+    .reduce((sum, v) => sum + Number(v.quantite), 0);
 
   if (loading) {
     return <Box display="flex" justifyContent="center" py={20}><Text color="text.3">Chargement...</Text></Box>;
@@ -251,7 +302,7 @@ export default function Ventes() {
       )}
 
       <Box>
-        <Text mb={1} fontSize="sm" color="text.2">Selectionner un cycle</Text>
+        <Text mb={1} fontSize="sm" color="text.2">Sélectionner un cycle</Text>
         <Select
           value={selectedCycle}
           onChange={(e) => {
@@ -260,6 +311,8 @@ export default function Ventes() {
             setSelectedCycleData(cycle || null);
             setForm((prev) => ({ ...prev, cycle_id: e.target.value }));
             setEditingId(null);
+            setSearchClient('');
+            setFilterStatut('tous');
           }}
           bg="surface.1"
           borderColor="border.1"
@@ -285,7 +338,7 @@ export default function Ventes() {
               <SimpleGrid columns={{ base: 2, md: 7 }} spacing={3}>
                 <Input
                   type="number"
-                  placeholder="Quantite"
+                  placeholder="Quantité"
                   value={form.quantite || ''}
                   onChange={(e) => setForm({ ...form, quantite: Number(e.target.value) })}
                   bg="surface.2"
@@ -350,8 +403,9 @@ export default function Ventes() {
                   borderColor="border.1"
                   size="sm"
                   borderRadius="md"
+                  required
                 >
-                  <option value="">Sans client</option>
+                  <option value="">Choisir un client</option>
                   {clients.map((cl) => (
                     <option key={cl.id} value={cl.id}>{cl.nom}</option>
                   ))}
@@ -385,15 +439,51 @@ export default function Ventes() {
             </Box>
             {selectedCycle && (
               <Text fontSize="xs" color="text.3" mt={2}>
-                Disponible : {resteDisponible} poulets sur {effectifVivant} vivants
+                {totalImpayeCycle > 0
+                  ? `Disponible : ${resteDisponible} poulets, ${totalImpayeCycle} impayés sur ${effectifVivant} vivants`
+                  : `Disponible : ${resteDisponible} poulets sur ${effectifVivant} vivants`}
               </Text>
             )}
           </CardBody>
         </Card>
       ) : null}
 
-      {ventes.length === 0 ? (
-        <Text color="text.3" textAlign="center" py={6}>Aucune vente enregistree.</Text>
+      <HStack spacing={3} flexWrap="wrap" position="relative" zIndex={1}>
+        <InputGroup maxW="250px" size="sm">
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="gray.500" />
+          </InputLeftElement>
+          <Input
+            placeholder="Rechercher client..."
+            value={searchClient}
+            onChange={(e) => setSearchClient(e.target.value)}
+            bg="surface.1"
+            borderColor="border.1"
+            borderRadius="md"
+            fontSize="sm"
+          />
+        </InputGroup>
+        <Select
+          value={filterStatut}
+          onChange={(e) => setFilterStatut(e.target.value)}
+          bg="surface.1"
+          borderColor="border.1"
+          w="auto"
+          fontSize="sm"
+          size="sm"
+          borderRadius="md"
+        >
+          <option value="tous">Tous les statuts</option>
+          <option value="paye">Payé</option>
+          <option value="partiel">Partiel</option>
+          <option value="impaye">Impayé</option>
+        </Select>
+      </HStack>
+
+      {filteredVentes.length === 0 ? (
+        <Text color="text.3" textAlign="center" py={6}>
+          {ventes.length === 0 ? 'Aucune vente enregistrée.' : 'Aucune vente ne correspond aux filtres.'}
+        </Text>
       ) : (
         <Box overflowX="auto">
           <Table size="sm" variant="simple">
@@ -401,19 +491,37 @@ export default function Ventes() {
               <Tr>
                 <Th color="text.3">Date</Th>
                 <Th color="text.3">Client</Th>
-                <Th color="text.3">Quantite</Th>
+                <Th color="text.3">Quantité</Th>
                 <Th color="text.3">Prix unitaire</Th>
                 <Th color="text.3">Total</Th>
                 <Th color="text.3">Mode paiement</Th>
                 <Th color="text.3">Statut</Th>
-                <Th />
+                <Th color="text.3">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {ventes.map((v) => (
+              {paginatedVentes.map((v) => (
                 <Tr key={v.id}>
                   <Td color="text.2">{new Date(v.date).toLocaleDateString('fr-FR')}</Td>
-                  <Td color="text.2">{v.client?.nom || '—'}</Td>
+                  <Td>
+                    {v.client ? (
+                      <HStack spacing={1}>
+                        <Text color="accent.1" fontSize="sm">{v.client.nom}</Text>
+                        <Tooltip label="Voir le client">
+                          <IconButton
+                            aria-label="Voir le client"
+                            icon={<FiExternalLink />}
+                            size="xs"
+                            variant="ghost"
+                            color="accent.1"
+                            onClick={() => navigate(`/clients/${v.client!.id}`)}
+                          />
+                        </Tooltip>
+                      </HStack>
+                    ) : (
+                      <Text color="text.3" fontSize="sm">—</Text>
+                    )}
+                  </Td>
                   <Td color="text.2">{v.quantite}</Td>
                   <Td color="text.2">{Number(v.prix_unitaire).toLocaleString('fr-FR')} KMF</Td>
                   <Td color="text.2">{(Number(v.quantite) * Number(v.prix_unitaire)).toLocaleString('fr-FR')} KMF</Td>
@@ -424,30 +532,44 @@ export default function Ventes() {
                     </Badge>
                   </Td>
                   <Td>
-                    {selectedCycleData?.statut === 'en_cours' && (
-                      <HStack spacing={1}>
-                        <Tooltip label="Modifier">
+                    <HStack spacing={1}>
+                      {(v.statut_paiement === 'impaye' || v.statut_paiement === 'partiel') && (
+                        <Tooltip label="Marquer comme payé">
                           <IconButton
-                            aria-label="Modifier"
-                            icon={<FiEdit2 />}
+                            aria-label="Marquer comme payé"
+                            icon={<FiCheckCircle />}
                             size="xs"
                             variant="ghost"
-                            color="accent.1"
-                            onClick={() => handleEdit(v)}
+                            color="green.400"
+                            onClick={() => handleMarkAsPaid(v.id)}
                           />
                         </Tooltip>
-                        <Tooltip label="Supprimer">
-                          <IconButton
-                            aria-label="Supprimer"
-                            icon={<FiTrash2 />}
-                            size="xs"
-                            variant="ghost"
-                            color="danger.1"
-                            onClick={() => handleDelete(v.id)}
-                          />
-                        </Tooltip>
-                      </HStack>
-                    )}
+                      )}
+                      {selectedCycleData?.statut === 'en_cours' && (
+                        <>
+                          <Tooltip label="Modifier">
+                            <IconButton
+                              aria-label="Modifier"
+                              icon={<FiEdit2 />}
+                              size="xs"
+                              variant="ghost"
+                              color="accent.1"
+                              onClick={() => handleEdit(v)}
+                            />
+                          </Tooltip>
+                          <Tooltip label="Supprimer">
+                            <IconButton
+                              aria-label="Supprimer"
+                              icon={<FiTrash2 />}
+                              size="xs"
+                              variant="ghost"
+                              color="danger.1"
+                              onClick={() => handleDelete(v.id)}
+                            />
+                          </Tooltip>
+                        </>
+                      )}
+                    </HStack>
                   </Td>
                 </Tr>
               ))}
@@ -456,13 +578,16 @@ export default function Ventes() {
         </Box>
       )}
 
-      {ventes.length > 0 && (
-        <HStack justify="flex-end" spacing={6}>
+      {filteredVentes.length > 0 && (
+        <HStack justify="space-between" spacing={6}>
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           <Text fontSize="sm" color="text.3">
-            Total: <strong color="text.1">{totalQuantite} poulets - {Math.round(totalVentes).toLocaleString('fr-FR')} KMF</strong>
+            {filteredVentes.length !== ventes.length && `${filteredVentes.length} sur ${ventes.length} — `}
+            Total: <strong color="text.1">{totalQuantiteFiltered} poulets — {Math.round(totalVentesFiltered).toLocaleString('fr-FR')} KMF</strong>
           </Text>
         </HStack>
       )}
+
       <Modal isOpen={showErrorModal} onClose={() => setShowErrorModal(false)} isCentered>
         <ModalOverlay />
         <ModalContent>

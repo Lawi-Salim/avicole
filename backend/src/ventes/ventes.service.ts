@@ -78,6 +78,10 @@ export class VentesService {
   }
 
   async create(dto: CreateVenteDto) {
+    if (!dto.client_id) {
+      throw new BadRequestException('Un client est obligatoire pour créer une vente');
+    }
+
     const disponible = await this.calculerDisponibleVente(dto.cycle_id);
 
     if (dto.quantite > disponible) {
@@ -90,7 +94,7 @@ export class VentesService {
 
     return this.venteModel.create({
       cycle_id: dto.cycle_id,
-      client_id: dto.client_id || null,
+      client_id: dto.client_id,
       quantite: dto.quantite,
       prix_unitaire: dto.prix_unitaire,
       date: dto.date,

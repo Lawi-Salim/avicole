@@ -169,6 +169,7 @@ charges le dit explicitement : sans cycle, rien d'autre n'a de sens.
 - [ ] Service Python : génération PDF facture de vente
 - [ ] Export de rapports comparatifs multi-cycles
 - [ ] Export CSV des données brutes
+- [ ] Ajouter un export CSV de la liste des clients
 - [ ] Amélioration ergonomie mobile (saisie rapide terrain)
 - [ ] Étude/prototype d'un mode dégradé/offline (mise en cache locale + synchronisation différée)
 - [ ] Sauvegardes automatiques régulières en place et testées (restauration vérifiée)

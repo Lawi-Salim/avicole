@@ -6,8 +6,10 @@ import {
   Card,
   CardBody,
   Heading,
+  HStack,
   Input,
   InputGroup,
+  Image,
   InputRightElement,
   Text,
   VStack,
@@ -16,6 +18,10 @@ import {
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
+import logoDark from '../assets/img/logo-png-3x.png';
+import logoLight from '../assets/img/logo-png--3x.png';
+import logo from '../assets/img/logo.png';
+import { useThemeMode } from '../theme/ThemeMode';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -23,6 +29,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { colorMode, toggleThemeMode } = useThemeMode();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -47,7 +54,14 @@ export default function Login() {
         <CardBody p={8}>
           <VStack spacing={6} as="form" onSubmit={handleSubmit}>
             <VStack spacing={1}>
-              <Heading size="lg" color="accent.1">AVICOLE</Heading>
+              <HStack spacing={2}>
+                <Image
+                  // src={colorMode === 'light' ? logoLight : logoDark}
+                  src={logo}
+                  alt="AVICOLE"
+                  h="40px"
+                />
+              </HStack>
               <Text color="text.3" fontSize="sm">Gestion avicole — Connexion</Text>
             </VStack>
 
@@ -69,31 +83,48 @@ export default function Login() {
                   borderColor="border.1"
                   _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
                   placeholder="adresse@email.com"
+                  fontSize="sm"
+                  h={8}
                   required
                 />
               </Box>
 
               <Box w="full">
-                <Text mb={1} fontSize="sm" color="text.2">Mot de passe</Text>
-                <InputGroup>
+                <Text mb={1} fontSize="sm" color="text.2">
+                  Mot de passe
+                </Text>
+                <InputGroup size="sm"> {/* Ajout de size="sm" pour harmoniser le groupe */}
                   <Input
                     type={showPassword ? 'text' : 'password'}
                     value={motDePasse}
                     onChange={(e) => setMotDePasse(e.target.value)}
                     bg="surface.2"
                     borderColor="border.1"
-                    _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
+                    _focus={{
+                      borderColor: 'accent.1',
+                      boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)',
+                    }}
                     placeholder="••••••••"
+                    fontSize="sm"
+                    h={8}
+                    pr="2.5rem"
                     required
+                    borderRadius="md"
                   />
-                  <InputRightElement>
+                  {/* Contrainte de hauteur h={8} pour s'aligner parfaitement sur l'input */}
+                  <InputRightElement h={8} w="2.5rem">
                     <Button
                       variant="ghost"
                       size="sm"
+                      h="1.5rem"
+                      w="1.5rem"
+                      minW="auto"
                       onClick={() => setShowPassword(!showPassword)}
                       color="text.3"
+                      p={0}
+                      borderRadius="md"
                     >
-                      {showPassword ? <FiEyeOff /> : <FiEye />}
+                      {showPassword ? <Box as={FiEyeOff} size={16} /> : <Box as={FiEye} size={16} />}
                     </Button>
                   </InputRightElement>
                 </InputGroup>
@@ -108,6 +139,8 @@ export default function Login() {
               w="full"
               isLoading={loading}
               fontWeight="bold"
+              fontSize="sm"
+              size="sm"
             >
               Se connecter
             </Button>

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import {
   Box,
   Flex,
@@ -40,6 +40,9 @@ import { DrawerCalculate } from '../../utils/DrawerCalculate';
 import { UserAvatar } from '../../utils/Avatars';
 import logoDark from '../../assets/img/logo-png-3x.png';
 import logoLight from '../../assets/img/logo-png--3x.png';
+import logo from '../../assets/img/logo.png';
+import { cyclesService } from '../../services/cycles.service';
+import { ventesService } from '../../services/ventes.service';
 
 interface NavItemProps {
   icon: ReactNode;
@@ -88,7 +91,8 @@ function SidebarHeader() {
     <HStack justify="space-between" borderBottom="1px solid" borderColor="sidebar.userBorder" px={5} py="9.5px">
       <HStack spacing={2}>
         <Image
-          src={colorMode === 'light' ? logoLight : logoDark}
+          // src={colorMode === 'light' ? logoLight : logoDark}
+          src={logo}
           alt="AVICOLE"
           h="40px"
         />
@@ -121,6 +125,23 @@ function SidebarHeader() {
 function SidebarNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [impayeCount, setImpayeCount] = useState(0);
+
+  useEffect(() => {
+    const fetchImpayeCount = async () => {
+      try {
+        const allCycles = await cyclesService.getAll();
+        const enCours = allCycles.find((c) => c.statut === 'en_cours');
+        if (!enCours) return;
+        const ventes = await ventesService.getByCycle(enCours.id);
+        const count = ventes.filter((v) => v.statut_paiement === 'impaye').length;
+        setImpayeCount(count);
+      } catch {
+        // silent fail for badge count
+      }
+    };
+    fetchImpayeCount();
+  }, []);
 
   const sections = [
     {
@@ -168,14 +189,32 @@ function SidebarNav() {
           </Text>
           <VStack spacing={0.5} align="stretch">
             {section.items.map((item) => (
-              <NavItem
-                key={item.path + item.label}
-                icon={item.icon}
-                label={item.label}
-                path={item.path}
-                isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
-                onClick={() => navigate(item.path)}
-              />
+              <Box key={item.path + item.label} position="relative">
+                <NavItem
+                  icon={item.icon}
+                  label={item.label}
+                  path={item.path}
+                  isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
+                  onClick={() => navigate(item.path)}
+                />
+                {item.path === '/ventes' && impayeCount > 0 && (
+                  <Badge
+                    position="absolute"
+                    right={2}
+                    top="50%"
+                    transform="translateY(-50%)"
+                    bg="danger.1"
+                    color="white"
+                    fontSize="xs"
+                    borderRadius="full"
+                    px={1.5}
+                    minW="18px"
+                    textAlign="center"
+                  >
+                    {impayeCount}
+                  </Badge>
+                )}
+              </Box>
             ))}
           </VStack>
         </Box>
