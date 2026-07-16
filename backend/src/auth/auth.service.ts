@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -87,6 +88,67 @@ export class AuthService {
       email: user.email,
       role: user.role,
     };
+  }
+
+  async findAll() {
+    return this.userModel.findAll({
+      attributes: ['id', 'nom', 'email', 'role', 'actif', 'created_at'],
+      order: [['nom', 'ASC']],
+    });
+  }
+
+  async findOne(id: string) {
+    const user = await this.userModel.findByPk(id, {
+      attributes: ['id', 'nom', 'email', 'role', 'actif', 'created_at'],
+    });
+    if (!user) {
+      throw new NotFoundException(`Utilisateur #${id} non trouvé`);
+    }
+    return user;
+  }
+
+  async update(id: string, dto: Partial<{ nom: string; email: string; role: string; actif: boolean }>) {
+    const user = await this.userModel.findByPk(id);
+    if (!user) {
+      throw new NotFoundException(`Utilisateur #${id} non trouvé`);
+    }
+    const updateData: Record<string, unknown> = {};
+    if (dto.nom !== undefined) updateData.nom = dto.nom;
+    if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.role !== undefined) updateData.role = dto.role;
+    if (dto.actif !== undefined) updateData.actif = dto.actif;
+    await user.update(updateData);
+    return {
+      id: user.id,
+      nom: user.nom,
+      email: user.email,
+      role: user.role,
+      actif: user.actif,
+    };
+  }
+
+  async toggleActif(id: string) {
+    const user = await this.userModel.findByPk(id);
+    if (!user) {
+      throw new NotFoundException(`Utilisateur #${id} non trouvé`);
+    }
+    await user.update({ actif: !user.actif });
+    return {
+      id: user.id,
+      nom: user.nom,
+      email: user.email,
+      role: user.role,
+      actif: user.actif,
+    };
+  }
+
+  async remove(id: string) {
+    const user = await this.userModel.findByPk(id);
+    if (!user) {
+      throw new NotFoundException(`Utilisateur #${id} non trouvé`);
+    }
+    await user.destroy();
+    return { message: 'Utilisateur supprimé' };
   }
 
   private signToken(user: User): string {

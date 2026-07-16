@@ -5,6 +5,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './user.entity.js';
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
+import { UtilisateursController } from './utilisateurs.controller.js';
 import { JwtStrategy } from './jwt.strategy.js';
 
 @Module({
@@ -16,7 +17,7 @@ import { JwtStrategy } from './jwt.strategy.js';
       signOptions: { expiresIn: '24h' },
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UtilisateursController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })

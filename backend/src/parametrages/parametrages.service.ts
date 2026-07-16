@@ -15,12 +15,7 @@ export class ParametragesService {
       where: { actif: true },
       order: [['created_at', 'DESC']],
     });
-    if (!param) {
-      throw new NotFoundException(
-        'Aucun paramétrage actif trouvé. Créez-en un.',
-      );
-    }
-    return param;
+    return param || null;
   }
 
   async create(userId?: string) {
@@ -41,6 +36,15 @@ export class ParametragesService {
     const param = await this.parametrageModel.findByPk(id);
     if (!param) {
       throw new NotFoundException(`Paramétrage #${id} non trouvé`);
+    }
+    await param.update(dto);
+    return param;
+  }
+
+  async updateCurrent(dto: UpdateParametrageDto) {
+    const param = await this.getActif();
+    if (!param) {
+      return this.create().then((p) => p.update(dto));
     }
     await param.update(dto);
     return param;

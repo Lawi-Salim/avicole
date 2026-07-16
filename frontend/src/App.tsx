@@ -1,18 +1,23 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import { Box, Spinner, Center } from '@chakra-ui/react';
+import { Spinner, Center } from '@chakra-ui/react';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Login from './pages/Login';
 import Cycles from './pages/Cycles';
 import CreateCycle from './pages/CreateCycle';
 import CycleDetail from './pages/CycleDetail';
-import Parametrage from './pages/Parametrage';
 import Depenses from './pages/Depenses';
+import Parametrage from './pages/Parametrage';
 import Ventes from './pages/Ventes';
 import Clients from './pages/Clients';
 import ClientDetail from './pages/ClientDetail';
 import Dashboard from './pages/Dashboard';
-import ComingSoon from './pages/ComingSoon';
+import Risques from './pages/Risques';
+import Stocks from './pages/Stocks';
+import ProduitsVeterinaires from './pages/ProduitsVeterinaires';
+import Sante from './pages/Sante';
+import Bilans from './pages/Bilans';
+import Utilisateurs from './pages/Utilisateurs';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute() {
@@ -44,10 +49,12 @@ export default function App() {
         <Route path="/clients" element={<Clients />} />
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/utilisateurs" element={<ComingSoon />} />
-        <Route path="/stocks" element={<ComingSoon />} />
-        <Route path="/sante" element={<ComingSoon />} />
-        <Route path="/bilans" element={<ComingSoon />} />
+        <Route path="/risques" element={<Risques />} />
+        <Route path="/stocks" element={<Stocks />} />
+        <Route path="/produits-veterinaires" element={<ProduitsVeterinaires />} />
+        <Route path="/sante" element={<Sante />} />
+        <Route path="/bilans" element={<Bilans />} />
+        <Route path="/utilisateurs" element={<Utilisateurs />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
