@@ -6,7 +6,10 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -23,7 +26,7 @@ import {
   Tooltip,
   Textarea,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { depensesService, Depense, CreateDepensePayload } from '../services/depenses.service';
 import ConfirmModal from '../components/ConfirmModal';
@@ -184,27 +187,46 @@ export default function Depenses() {
       {/* Sélecteur de cycle */}
       <Box>
         <Text mb={1} fontSize="sm" color="text.2">Sélectionner un cycle</Text>
-        <Select
-          value={selectedCycle}
-          onChange={(e) => {
-            setSelectedCycle(e.target.value);
-            const cycle = cycles.find(c => c.id === e.target.value);
-            setSelectedCycleData(cycle || null);
-            setForm((prev) => ({ ...prev, cycle_id: e.target.value }));
-            setEditingId(null);
-          }}
-          bg="surface.1"
-          borderColor="border.1"
-          maxW="400px"
-          fontSize="sm"
-          h={8}
-        >
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')}
-            </option>
-          ))}
-        </Select>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w="100%"
+            maxW="400px"
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.2"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+            fontSize="sm"
+          >
+            {selectedCycleData
+              ? `Cycle #${selectedCycleData.numero_cycle} — ${new Date(selectedCycleData.date_reception).toLocaleDateString('fr-FR')}`
+              : 'Sélectionner un cycle'}
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1">
+            {cycles.map((c) => (
+              <MenuItem
+                key={c.id}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+                onClick={() => {
+                  setSelectedCycle(c.id);
+                  setSelectedCycleData(c);
+                  setForm((prev) => ({ ...prev, cycle_id: c.id }));
+                  setEditingId(null);
+                }}
+              >
+                Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
       </Box>
 
       {/* Formulaire */}
@@ -216,20 +238,37 @@ export default function Depenses() {
             </Heading>
             <Box as="form" onSubmit={handleSubmit}>
               <SimpleGrid columns={{ base: 2, md: 5 }} spacing={3}>
-                <Select
-                  value={form.categorie}
-                  onChange={(e) => setForm({ ...form, categorie: e.target.value as CreateDepensePayload['categorie'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  borderRadius="md"
-                  size="sm"
-                >
-                  <option value="poussins">Poussins</option>
-                  <option value="aliments">Aliments</option>
-                  <option value="veterinaire">Vétérinaire</option>
-                  <option value="infrastructure">Infrastructure</option>
-                  <option value="imprevu">Imprévu</option>
-                </Select>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {CATEGORIE_LABELS[form.categorie] || form.categorie}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    {Object.entries(CATEGORIE_LABELS).map(([value, label]) => (
+                      <MenuItem
+                        key={value}
+                        bg="surface.1"
+                        _hover={{ bg: 'surface.2' }}
+                        color="text.1"
+                        fontSize={{ base: "md", md: "sm" }}
+                        onClick={() => setForm({ ...form, categorie: value as CreateDepensePayload['categorie'] })}
+                      >
+                        {label}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
                 <Input
                   type="number"
                   placeholder="Montant (KMF)"
@@ -294,7 +333,7 @@ export default function Depenses() {
 
       {/* Liste des dépenses */}
       {depenses.length === 0 ? (
-        <Text color="text.3" textAlign="center" py={6}>Aucune dépense enregistrée.</Text>
+        <Text color="text.3" fontSize="sm" textAlign="center" py={6}>Aucune dépense enregistrée.</Text>
       ) : (
         <Box overflowX="auto">
           <Table size="sm" variant="simple">

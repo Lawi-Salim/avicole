@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture AVIPOUL</title>
+    <style>
+    body {
+        background-color: #8b8585;
+        color: #111111;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 40px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .invoice-container {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        width: 794px;
+        height: 1123px;
+        padding: 60px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        position: relative;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 40px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .company-logo-section {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        width: 300px;
+    }
+
+    .company-name {
+        font-size: 20px;
+        font-weight: bold;
+        color: #111111;
+        margin: 0;
+    }
+
+    .company-subtitle {
+        font-size: 12px;
+        color: #666666;
+        margin: 2px 0 0 0;
+    }
+
+    .invoice-title-section {
+        text-align: right;
+    }
+
+    .invoice-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #111111;
+        margin: 0;
+    }
+
+    .invoice-number {
+        font-size: 14px;
+        color: #444444;
+        margin: 5px 0;
+    }
+
+    .status-badge {
+        background-color: rgba(76, 175, 80, 0.15);
+        border: 1px solid #2e8733;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .status-badge.pending {
+        background-color: rgba(255, 152, 0, 0.15);
+        border: 1px solid #e68a00;
+        color: #e68a00;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 40px;
+    }
+
+    .details-block h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #888888;
+        margin-bottom: 10px;
+        margin-top: 0;
+    }
+
+    .details-block p {
+        margin: 4px 0;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .metadata-bar {
+        background-color: #f7f7f7;
+        border-radius: 8px;
+        padding: 15px 20px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 40px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .metadata-item label {
+        display: block;
+        font-size: 11px;
+        color: #777777;
+        margin-bottom: 5px;
+    }
+
+    .metadata-item span {
+        font-size: 14px;
+        font-weight: bold;
+        color: #111111;
+    }
+
+    .invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+
+    .invoice-table th {
+        text-align: left;
+        font-size: 14px;
+        color: #666666;
+        padding-bottom: 5px;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: bold;
+    }
+
+    .invoice-table td {
+        padding: 10px 0;
+        font-size: 14px;
+        color: #111111;
+        border-bottom: 1px solid #ebebeb;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .summary-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 60px;
+    }
+
+    .notes-block {
+        width: 40%;
+    }
+
+    .notes-block h4 {
+        font-size: 12px;
+        color: #888888;
+        text-transform: uppercase;
+        margin: 0 0 8px 0;
+    }
+
+    .notes-block p {
+        font-size: 13px;
+        color: #444444;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .totals-block {
+        width: 40%;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        margin-bottom: 10px;
+        color: #444444;
+    }
+
+    .total-row.grand-total {
+        font-size: 18px;
+        font-weight: bold;
+        color: #111111;
+        border-top: 2px solid #e0e0e0;
+        padding-top: 5px;
+        margin-top: 5px;
+    }
+
+    .absolute-bottom-area {
+        position: absolute;
+        bottom: 40px;
+        left: 60px;
+        right: 60px;
+    }
+
+    @media print {
+        body {
+            background-color: #ffffff;
+            padding: 0;
+            margin: 0;
+        }
+        .invoice-container {
+            width: 210mm;
+            height: 297mm;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 20mm;
+        }
+        .absolute-bottom-area {
+            bottom: 20mm;
+            left: 20mm;
+            right: 20mm;
+        }
+    }
+
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    .footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: #666666;
+        border-top: 1px solid #e0e0e0;
+        padding-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media print {
+        body {
+            background-color: #ffffff;
+            padding: 0;
+            margin: 0;
+            display: block;
+        }
+        .invoice-container {
+            width: 210mm;
+            height: 297mm;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 20mm;
+        }
+    }
+
+    </style>
+</head>
+<body>
+
+    <div class="invoice-container">
+
+        <!-- En-tête -->
+        <div class="header">
+            <div class="company-logo-section">
+                <div>
+                  <img src="{{ logo_url }}" alt="AVIPOUL" style="width: 80px; height: 80px; object-fit: contain;">
+                </div>
+                <div>
+                    <h1 class="company-name">AVIPOUL</h1>
+                    <p class="company-subtitle">SHABABI • HAZI</p>
+                    <p class="company-subtitle">Moroni, Union des Comores</p>
+                </div>
+            </div>
+            <div class="invoice-title-section">
+                <h2 class="invoice-title">FACTURE</h2>
+                <p class="invoice-number">N° {{ facture.numero }}</p>
+                {% if facture.statut == 'paye' %}
+                <span class="status-badge">Facture payée</span>
+                {% elif facture.statut == 'partiel' %}
+                <span class="status-badge pending">Payé partiellement</span>
+                {% else %}
+                <span class="status-badge pending">En attente</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Émetteur & Client -->
+        <div class="details-grid">
+            <div class="details-block">
+                <h3>Émetteur</h3>
+                <p style="font-weight: bold; color: #000;">Exploitation Agricole AVIPOUL</p>
+                <p>Lawi Ibrahim</p>
+                <p style="color: #000;">lawibrahim@avicole.com • +269 434 00 04</p>
+                <p>Rue de la corniche, Moroni</p>
+            </div>
+            <div style="padding-left: 20px;" class="details-block">
+                <h3>Client</h3>
+                <p style="font-weight: bold; color: #000;">{{ client.nom }}</p>
+                <p>{{ client.type }}</p>
+                <p>{{ client.email }} • {{ client.contact }}</p>
+                <p>{{ client.adresse }}</p>
+            </div>
+        </div>
+
+        <!-- Barre de métadonnées -->
+        <div class="metadata-bar">
+            <div class="metadata-item">
+                <label>Date d'émission</label>
+                <span>{{ facture.date_emission }}</span>
+            </div>
+            <div class="metadata-item">
+                <label>Cycle de référence</label>
+                <span>{{ facture.cycle_reference }}</span>
+            </div>
+            {% if facture.statut != 'paye' %}
+            <div class="metadata-item">
+                <label>Échéance</label>
+                <span>{{ facture.date_echeance }}</span>
+            </div>
+            <div class="metadata-item">
+                <label>Conditions</label>
+                <span>{{ facture.conditions }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Table des articles -->
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Désignation</th>
+                    <th style="width: 80px;">Qté</th>
+                    <th style="width: 120px;">PU (KMF)</th>
+                    <th style="width: 140px;">Total (KMF)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr>
+                    <td>{{ article.designation }}</td>
+                    <td>{{ article.quantite }}</td>
+                    <td>{{ article.prix_unitaire | format_number }}</td>
+                    <td>{{ article.total | format_number }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Remarques et Totaux -->
+        <div class="summary-section">
+            <div class="notes-block">
+                <h4>Notes</h4>
+                <p>{{ facture.notes }}</p>
+                {% if facture.remise_pct is defined and facture.remise_pct > 0 %}
+                <p style="font-style: italic; font-weight: bold;">Facture confidentielle. Le montant total à payer intègre une réduction de {{ facture.remise_pct }}% accordée sur la vente de ce client.</p>
+                {% endif %}
+            </div>
+            <div class="totals-block">
+                <div class="total-row">
+                    <span>Sous-total</span>
+                    <span>{{ facture.sous_total | format_number }} KMF</span>
+                </div>
+                <div class="total-row">
+                    <span>Remise</span>
+                    <span>{{ facture.remise | format_number }} KMF</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>Total à payer</span>
+                    <span>{{ facture.total | format_number }} KMF</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="absolute-bottom-area">
+            <div class="footer">
+                <div>
+                    <span style="color: #666; text-transform: uppercase; font-size: 11px; display: block;">AVIPOUL — SHABABI • HAZI, Moroni, Union des Comores</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="color: #666; text-transform: uppercase; font-size: 11px; display: block; font-weight: bold;">Merci de votre confiance</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

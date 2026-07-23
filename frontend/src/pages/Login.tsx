@@ -39,7 +39,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, motDePasse);
-      navigate('/cycles');
+      navigate('/dashboard');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Erreur de connexion');

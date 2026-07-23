@@ -47,6 +47,16 @@ export class Vente extends Model {
   })
   declare statut_paiement: 'paye' | 'partiel' | 'impaye';
 
+  @Column({
+    type: DataType.TEXT,
+    allowNull: false,
+    defaultValue: 'poulet_vif',
+  })
+  declare categorie_produit: 'poulet_vif' | 'poulet_abattu' | 'poulet_entier' | 'poulet_fermier' | 'poulet_morceaux' | 'poulet_cuisse' | 'poulet_ailes';
+
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, defaultValue: 0 })
+  declare remise: number;
+
   @BelongsTo(() => Cycle)
   cycle!: Cycle;
 

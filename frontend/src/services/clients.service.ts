@@ -5,12 +5,16 @@ export interface Client {
   nom: string;
   type_client: 'menage' | 'restaurant' | 'hotel' | 'boucherie' | 'revendeur';
   contact: string | null;
+  email: string | null;
+  adresse: string | null;
 }
 
 export interface CreateClientPayload {
   nom: string;
   type_client: 'menage' | 'restaurant' | 'hotel' | 'boucherie' | 'revendeur';
   contact?: string;
+  email?: string;
+  adresse?: string;
 }
 
 export interface ClientVente {

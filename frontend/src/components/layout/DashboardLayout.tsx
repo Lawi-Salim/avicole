@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Flex,
@@ -13,6 +13,12 @@ import {
   Badge,
   Tooltip,
   Divider,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Heading,
+  Button,
 } from '@chakra-ui/react';
 import {
   FiHome,
@@ -32,6 +38,7 @@ import {
   FiMoon,
   FiLogOut,
   FiAlertTriangle,
+  FiMenu,
 } from 'react-icons/fi';
 import { MdOutlineCalculate } from "react-icons/md";
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -44,9 +51,11 @@ import logoLight from '../../assets/img/logo-png--3x.png';
 import logo from '../../assets/img/logo.png';
 import { cyclesService } from '../../services/cycles.service';
 import { ventesService } from '../../services/ventes.service';
+import SidebarMobile from './SidebarMobile';
+import { responsiveText } from '../../theme/designTokens';
 
 interface NavItemProps {
-  icon: ReactNode;
+  icon: React.ReactNode;
   label: string;
   path: string;
   isActive: boolean;
@@ -64,7 +73,7 @@ function NavItem({ icon, label, path, isActive, onClick }: NavItemProps) {
       px={3}
       py={2}
       borderRadius="md"
-      fontSize="sm"
+      fontSize={responsiveText.sm}
       fontWeight={isActive ? 'medium' : 'normal'}
       color={isActive ? 'sidebar.textActive' : 'sidebar.text'}
       bg={isActive ? 'sidebar.bgActive' : 'transparent'}
@@ -95,7 +104,7 @@ function SidebarHeader() {
           // src={colorMode === 'light' ? logoLight : logoDark}
           src={logo}
           alt="AVICOLE"
-          h="40px"
+          h={{ base: '32px', sm: '36px', md: '40px' }}
         />
 
         {/* <Box
@@ -123,9 +132,10 @@ function SidebarHeader() {
   );
 }
 
-function SidebarNav() {
+function SidebarNav({ onClose }: { onClose?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [impayeCount, setImpayeCount] = useState(0);
 
   useEffect(() => {
@@ -144,13 +154,15 @@ function SidebarNav() {
     fetchImpayeCount();
   }, []);
 
+  const isAdmin = user?.role === 'admin';
+
   const sections = [
     {
       label: 'ADMINISTRATION',
       items: [
         { icon: <FiHome />, label: 'Vue d\'ensemble', path: '/dashboard' },
-        { icon: <FiSettings />, label: 'Paramètres', path: '/parametrage' },
-        { icon: <FiUsers />, label: 'Utilisateurs', path: '/utilisateurs' },
+        { icon: <FiSettings />, label: 'Paramètres', path: '/parametrage', adminOnly: false },
+        { icon: <FiUsers />, label: 'Utilisateurs', path: '/utilisateurs', adminOnly: true },
       ],
     },
     {
@@ -176,11 +188,14 @@ function SidebarNav() {
 
   return (
     <VStack spacing={0} align="stretch" flex={1} overflowY="auto" px={2} py={2}>
-      {sections.map((section, sIdx) => (
+      {sections.map((section, sIdx) => {
+        const visibleItems = section.items.filter((item: any) => !item.adminOnly || isAdmin);
+        if (visibleItems.length === 0) return null;
+        return (
         <Box key={section.label}>
           {sIdx > 0 && <Divider borderColor="sidebar.divider" my={3} />}
           <Text
-            fontSize="xs"
+            fontSize={responsiveText.xs}
             fontWeight="semibold"
             color="sidebar.section"
             letterSpacing="wider"
@@ -191,14 +206,14 @@ function SidebarNav() {
             {section.label}
           </Text>
           <VStack spacing={0.5} align="stretch">
-            {section.items.map((item) => (
+            {visibleItems.map((item: any) => (
               <Box key={item.path + item.label} position="relative">
                 <NavItem
                   icon={item.icon}
                   label={item.label}
                   path={item.path}
                   isActive={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => { navigate(item.path); onClose?.(); }}
                 />
                 {item.path === '/ventes' && impayeCount > 0 && (
                   <Badge
@@ -208,7 +223,7 @@ function SidebarNav() {
                     transform="translateY(-50%)"
                     bg="danger.1"
                     color="white"
-                    fontSize="xs"
+                    fontSize={responsiveText.xs}
                     borderRadius="full"
                     px={1.5}
                     minW="18px"
@@ -221,7 +236,8 @@ function SidebarNav() {
             ))}
           </VStack>
         </Box>
-      ))}
+        );
+      })}
     </VStack>
   );
 }
@@ -249,10 +265,10 @@ function SidebarUser() {
         src={user?.photo ?? null}
       />
       <VStack spacing={0} align="start" flex={1} minW={0}>
-        <Text fontSize="sm" fontWeight="medium" color="text.1" noOfLines={1}>
+        <Text fontSize={responsiveText.sm} fontWeight="medium" color="text.1" noOfLines={1}>
           {user?.nom || 'Utilisateur'}
         </Text>
-        <Text fontSize="xs" color="sidebar.text" noOfLines={1}>
+        <Text fontSize={responsiveText.xs} color="sidebar.text" noOfLines={1}>
           {user?.email || 'email@avicole.com'}
         </Text>
       </VStack>
@@ -271,8 +287,11 @@ function SidebarUser() {
   );
 }
 
-function Navbar({ onCalculatorOpen }: { onCalculatorOpen: () => void }) {
+function Navbar({ onCalculatorOpen, onMobileMenuOpen, isMobileSidebarOpen }: { onCalculatorOpen: () => void; onMobileMenuOpen: () => void; isMobileSidebarOpen: boolean }) {
   const { colorMode, toggleThemeMode } = useThemeMode();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showProfilModal, setShowProfilModal] = useState(false);
 
   return (
     <Flex
@@ -281,40 +300,49 @@ function Navbar({ onCalculatorOpen }: { onCalculatorOpen: () => void }) {
       bg="surface.1"
       borderBottom="1px solid"
       borderColor="border.1"
-      px={6}
+      px={{ base: 3, lg: 6 }}
       align="center"
       justify="space-between"
       flexShrink={0}
     >
-      <InputGroup maxW="400px" size="sm">
-        <InputLeftElement pointerEvents="none">
-          <FiSearch color="gray.500" />
-        </InputLeftElement>
-        <Input
-          placeholder="Rechercher..."
-          fontSize="sm"
-          bg="surface.2"
-          border="1px solid"
-          borderColor="border.1"
-          borderRadius="lg"
-          _placeholder={{ color: 'gray.500' }}
-          _focus={{ bg: 'surface.3', boxShadow: 'none' }}
+      {/* Gauche : Hamburger (mobile) + Recherche complète (desktop) */}
+      <HStack spacing={2}>
+        <IconButton
+          display={{ base: isMobileSidebarOpen ? 'none' : 'flex', lg: 'none' }}
+          aria-label="Menu"
+          icon={<FiMenu />}
+          onClick={onMobileMenuOpen}
+          variant="ghost"
+          size="sm"
+          color="text.2"
         />
-      </InputGroup>
+        <InputGroup display={{ base: 'none', lg: 'flex' }} maxW="400px" size="sm">
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="gray.500" />
+          </InputLeftElement>
+          <Input
+            placeholder="Rechercher..."
+            fontSize="sm"
+            bg="surface.2"
+            border="1px solid"
+            borderColor="border.1"
+            borderRadius="lg"
+            _placeholder={{ color: 'gray.500' }}
+            _focus={{ bg: 'surface.3', boxShadow: 'none' }}
+          />
+        </InputGroup>
+      </HStack>
 
+      {/* Droite : Recherche icône (mobile) + Notifications + Calculatrice (desktop) + Thème + Avatar */}
       <HStack spacing={3}>
-        <Tooltip label="Calculatrice" placement="bottom">
-          <Box position="relative">
-              <IconButton
-              aria-label="Calculatrice"
-              icon={<MdOutlineCalculate size={18} />}
-              size="sm"
-              variant="ghost"
-              color="text.2"
-              onClick={onCalculatorOpen}
-            />
-          </Box>
-        </Tooltip>
+        <IconButton
+          display={{ base: 'flex', lg: 'none' }}
+          aria-label="Recherche"
+          icon={<FiSearch />}
+          variant="ghost"
+          size="sm"
+          color="text.2"
+        />
         <Tooltip label="Notifications" placement="bottom">
           <Box position="relative">
             <IconButton
@@ -337,8 +365,20 @@ function Navbar({ onCalculatorOpen }: { onCalculatorOpen: () => void }) {
             />
           </Box>
         </Tooltip>
-
+        <Tooltip label="Calculatrice" placement="bottom">
+          <Box position="relative" display={{ base: 'none', lg: 'flex' }}>
+            <IconButton
+              aria-label="Calculatrice"
+              icon={<MdOutlineCalculate size={18} />}
+              size="sm"
+              variant="ghost"
+              color="text.2"
+              onClick={onCalculatorOpen}
+            />
+          </Box>
+        </Tooltip>
         <IconButton
+          display={{ base: 'none', lg: 'flex' }}
           aria-label="Changer de thème"
           icon={colorMode === 'light' ? <FiMoon size={18} /> : <FiSun size={18} />}
           size="sm"
@@ -346,33 +386,169 @@ function Navbar({ onCalculatorOpen }: { onCalculatorOpen: () => void }) {
           color="text.2"
           onClick={toggleThemeMode}
         />
+        {user && (
+          <Menu>
+            <MenuButton as={HStack} spacing={2} cursor="pointer" p={1} borderRadius="md" _hover={{ bg: 'surface.2' }}>
+              <Box pointerEvents="auto">
+                <UserAvatar name={`${user.nom} ${user.prenom || ''}`.trim()} size={28} src={user.photo ?? null} />
+              </Box>
+            </MenuButton>
+            <MenuList bg="surface.1" borderColor="border.1">
+              <MenuItem
+                bg="transparent"
+                _hover={{ bg: 'surface.2' }}
+                icon={<FiUser />}
+                onClick={() => setShowProfilModal(true)}
+                fontSize={{ base: "md", md: "sm" }}
+              >
+                Profil
+              </MenuItem>
 
-        <Box
-          w={8}
-          h={8}
-          borderRadius="full"
-          bg="accent.1"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          cursor="pointer"
-        >
-          <Text fontSize="xs" fontWeight="bold" color="gray.900">
-            LS
-          </Text>
-        </Box>
+              <MenuItem
+                bg="transparent"
+                _hover={{ bg: 'surface.2' }}
+                icon={colorMode === 'light' ? <FiMoon /> : <FiSun />}
+                onClick={toggleThemeMode}
+                display={{ base: 'flex', lg: 'none' }}
+                fontSize={{ base: "md", md: "sm" }}
+              >
+                {colorMode === 'light' ? 'Mode sombre' : 'Mode clair'}
+              </MenuItem>
+
+              <MenuItem
+                bg="transparent"
+                _hover={{ bg: 'surface.2' }}
+                icon={<FiLogOut />}
+                color="danger.1"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                fontSize={{ base: "md", md: "sm" }}
+              >
+                Déconnexion
+              </MenuItem>
+            </MenuList>
+          </Menu>
+        )}
       </HStack>
+
+      {showProfilModal && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="rgba(0, 0, 0, 0.5)"
+          zIndex={1000}
+          onClick={() => setShowProfilModal(false)}
+        >
+          <Box
+            bg="surface.1"
+            borderRadius="lg"
+            p={6}
+            maxW="500px"
+            mx="auto"
+            mt={{ base: 4, md: '10vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <HStack justify="space-between" align="center" mb={6}>
+              <Heading size="md" color="text.1" fontSize={{ base: "ms", md: "md" }}>Mon profil</Heading>
+              <Box
+                as="button"
+                onClick={() => setShowProfilModal(false)}
+                fontSize="xl"
+                color="text.2"
+                _hover={{ color: 'text.1' }}
+                cursor="pointer"
+              >
+                ×
+              </Box>
+            </HStack>
+
+            <Box display="flex" alignItems="center" mb={6}>
+              <Box pointerEvents="auto">
+                <UserAvatar name={`${user?.nom} ${user?.prenom || ''}`.trim()} size={64} src={user?.photo ?? null} />
+              </Box>
+              <Box ml={4}>
+                <Text fontSize="lg" fontWeight="bold" color="text.1">
+                  {`${user?.nom} ${user?.prenom || ''}`.trim()}
+                </Text>
+                <Text fontSize="sm" color="text.3">
+                  {user?.role === 'admin' ? 'Administrateur' : user?.role === 'employe' ? 'Employé' : 'Comptable'}
+                </Text>
+              </Box>
+            </Box>
+
+            <VStack spacing={4} align="stretch">
+              <Box>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.3" fontWeight="medium">Email</Text>
+                <Text color="text.1" fontSize={{ base: "sm", md: "ms" }}>{user?.email}</Text>
+              </Box>
+
+              {user?.telephone && (
+                <Box>
+                  <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.3" fontWeight="medium">Téléphone</Text>
+                  <Text color="text.1" fontSize={{ base: "sm", md: "ms" }}>{user.telephone}</Text>
+                </Box>
+              )}
+
+              {user?.adresse && (
+                <Box>
+                  <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.3" fontWeight="medium">Adresse</Text>
+                  <Text color="text.1" fontSize={{ base: "sm", md: "ms" }}>{user.adresse}</Text>
+                </Box>
+              )}
+
+              <Box>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.3" fontWeight="medium">Créé le</Text>
+                <Text color="text.2" fontSize={{ base: "sm", md: "ms" }}>
+                  {user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : '—'}
+                </Text>
+              </Box>
+
+              {user?.updated_at && (
+                <Box>
+                  <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.3" fontWeight="medium">Mis à jour le</Text>
+                  <Text color="text.2" fontSize={{ base: "sm", md: "ms" }}>
+                    {new Date(user.updated_at).toLocaleDateString('fr-FR')}
+                  </Text>
+                </Box>
+              )}
+            </VStack>
+
+            <Button
+              bg="accent.1"
+              color="gray.900"
+              _hover={{ bg: 'accent.2' }}
+              fontWeight="bold"
+              onClick={() => {
+                setShowProfilModal(false);
+                navigate('/parametrage');
+              }}
+              size={{ base: "md", md: "sm" }}
+              mt={6}
+              w="full"
+            >
+              Modifier mon profil
+            </Button>
+          </Box>
+        </Box>
+      )}
     </Flex>
   );
 }
 
 export default function DashboardLayout() {
   const [showCalculator, setShowCalculator] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
     <Flex h="100vh" overflow="hidden">
-      {/* Sidebar */}
+      {/* Sidebar Desktop */}
       <Flex
+        display={{ base: 'none', lg: 'flex' }}
         w="250px"
         minW="250px"
         h="100vh"
@@ -392,16 +568,74 @@ export default function DashboardLayout() {
         <SidebarUser />
       </Flex>
 
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <Box
+          position="fixed"
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          bg="rgba(0, 0, 0, 0.5)"
+          zIndex={200}
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <Box
+        position="fixed"
+        top={0}
+        left={0}
+        h="100vh"
+        w="250px"
+        bg="sidebar.bg"
+        borderRight="1px solid"
+        borderColor="sidebar.border"
+        boxShadow="sidebar.shadow"
+        zIndex={201}
+        transform={isMobileSidebarOpen ? 'translateX(0)' : 'translateX(-100%)'}
+        transition="transform 0.3s ease-in-out"
+        display={{ base: 'block', lg: 'none' }}
+      >
+        <Flex h="100vh" flexDirection="column">
+          {/* Bouton fermer */}
+          <Box position="absolute" top={2} right={2} zIndex={10}>
+            <IconButton
+              aria-label="Fermer"
+              // icon={<FiMenu />}
+              variant="ghost"
+              size="sm"
+              color="sidebar.text"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
+          </Box>
+
+          {/* Bloc 1: Header */}
+          <SidebarHeader />
+
+          {/* Bloc 2: Navigation */}
+          <SidebarNav onClose={() => setIsMobileSidebarOpen(false)} />
+
+          {/* Bloc 3: User info */}
+          <SidebarUser />
+        </Flex>
+      </Box>
+
       {/* Main content area */}
       <Flex flex={1} flexDirection="column" minW={0}>
         {/* Navbar */}
-        <Navbar onCalculatorOpen={() => setShowCalculator(true)} />
+        <Navbar
+          onCalculatorOpen={() => setShowCalculator(true)}
+          onMobileMenuOpen={() => setIsMobileSidebarOpen(true)}
+          isMobileSidebarOpen={isMobileSidebarOpen}
+        />
 
         {/* Content */}
         <Box
           flex={1}
           bg="surface.0"
-          p={6}
+          p={{ base: 3, lg: 6 }}
           overflow="auto"
         >
           <Outlet />

@@ -7,16 +7,20 @@ import {
   CardBody,
   HStack,
   Heading,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   SimpleGrid,
   Spinner,
   Text,
   VStack,
   Badge,
 } from '@chakra-ui/react';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { UserAvatar } from '../utils/Avatars';
+import { responsiveText } from '../theme/designTokens';
 
 const PHASE_LABELS: Record<string, string> = {
   preparation: 'Préparation',
@@ -54,7 +58,7 @@ export default function Cycles() {
   return (
     <VStack spacing={6} align="stretch">
       <HStack justify="space-between" flexWrap="wrap" gap={4}>
-        <Heading size="lg" color="text.1">Cycles</Heading>
+        <Heading size={{ base: "md", md: "lg" }} color="text.1">Cycles</Heading>
         <Button
           leftIcon={<FiPlus />}
           bg="accent.1"
@@ -62,29 +66,42 @@ export default function Cycles() {
           _hover={{ bg: 'accent.2' }}
           fontWeight="bold"
           onClick={() => navigate('/cycles/nouveau')}
-          fontSize="sm"
-          size="sm"
+          fontSize={responsiveText.sm}
+          size={{ base: "sm", md: "sm" }}
         >
           Nouveau cycle
         </Button>
       </HStack>
 
       <HStack>
-        <Select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          bg="surface.1"
-          borderColor="border.1"
-          w="auto"
-          _focus={{ borderColor: 'accent.1' }}
-          fontSize="sm"
-          size="sm"
-          borderRadius="md"
-        >
-          <option value="tous">Tous</option>
-          <option value="en_cours">En cours</option>
-          <option value="cloture">Clôturé</option>
-        </Select>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w={{ base: "100%", md: "auto" }}
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+          >
+            {filter === 'tous' ? 'Tous' : filter === 'en_cours' ? 'En cours' : 'Clôturé'}
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1">
+            <MenuItem onClick={() => setFilter('tous')} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+              Tous
+            </MenuItem>
+            <MenuItem onClick={() => setFilter('en_cours')} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+              En cours
+            </MenuItem>
+            <MenuItem onClick={() => setFilter('cloture')} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+              Clôturé
+            </MenuItem>
+          </MenuList>
+        </Menu>
       </HStack>
 
       {filtered.length === 0 ? (
@@ -105,7 +122,7 @@ export default function Cycles() {
               <CardBody>
                 <VStack align="stretch" spacing={3}>
                   <HStack justify="space-between">
-                    <Text fontWeight="bold" color="text.1" fontSize="md">
+                    <Text fontWeight="bold" color="text.1" fontSize={responsiveText.md}>
                       {cycle.numero_cycle}
                     </Text>
                     <Badge
@@ -123,21 +140,21 @@ export default function Cycles() {
                       <UserAvatar name={cycle.cree_par.nom} size={24} src={cycle.cree_par.photo ?? null} />
                     )}
                     <VStack align="start" spacing={0}>
-                      <Text fontSize="xs" color="text.3">
+                      <Text fontSize={responsiveText.xs} color="text.3">
                         {new Date(cycle.date_reception).toLocaleDateString('fr-FR')}
                       </Text>
-                      <Text fontSize="xs" color="text.3">
+                      <Text fontSize={responsiveText.xs} color="text.3">
                         Effectif: {cycle.effectif_initial}
                       </Text>
                     </VStack>
                   </HStack>
 
                   <HStack justify="space-between">
-                    <Text fontSize="sm" color="accent.1">
+                    <Text fontSize={responsiveText.sm} color="accent.1">
                       {PHASE_LABELS[cycle.phase_courante] || cycle.phase_courante}
                     </Text>
                     {cycle.taux_mortalite_pct !== undefined && (
-                      <Text fontSize="xs" color={cycle.taux_mortalite_pct > 5 ? 'danger.1' : 'text.3'}>
+                      <Text fontSize={responsiveText.xs} color={cycle.taux_mortalite_pct > 5 ? 'danger.1' : 'text.3'}>
                         Mortalité: {cycle.taux_mortalite_pct.toFixed(1)}%
                       </Text>
                     )}

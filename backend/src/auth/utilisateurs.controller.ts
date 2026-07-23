@@ -10,11 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { RolesGuard } from './roles.guard.js';
+import { Roles } from './roles.decorator.js';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 @Controller('utilisateurs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class UtilisateursController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 

@@ -18,8 +18,17 @@ export class User extends Model {
   @Column({ type: DataType.TEXT, allowNull: false })
   declare nom: string;
 
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare prenom: string;
+
   @Column({ type: DataType.TEXT, allowNull: false, unique: true })
   declare email: string;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare telephone: string;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  declare adresse: string;
 
   @Column({ type: DataType.TEXT, allowNull: false })
   declare password_hash: string;

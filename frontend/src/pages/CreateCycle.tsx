@@ -15,6 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { FiArrowLeft } from 'react-icons/fi';
 import { cyclesService } from '../services/cycles.service';
+import { responsiveText } from '../theme/designTokens';
 
 export default function CreateCycle() {
   const navigate = useNavigate();
@@ -43,19 +44,21 @@ export default function CreateCycle() {
   };
 
   return (
-    <VStack spacing={6} align="stretch" maxW="600px" mx="auto">
+    <VStack spacing={2} align="stretch" maxW={{ base: "100%", md: "600px" }} mx="auto" px={{ base: 4, md: 0 }}>
       <HStack>
         <Button
           variant="ghost"
           leftIcon={<FiArrowLeft />}
           color="text.2"
           onClick={() => navigate('/cycles')}
+          pl={0}
+          h={8}
         >
           Retour
         </Button>
       </HStack>
 
-      <Heading size="lg" color="text.1">Nouveau cycle</Heading>
+      <Heading size={{ base: "sm", md: "lg" }} color="text.1">Nouveau cycle</Heading>
 
       {error && (
         <Alert bg="danger.1" color="white" borderRadius="md" size="sm">
@@ -66,9 +69,9 @@ export default function CreateCycle() {
 
       <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
         <CardBody>
-          <VStack as="form" onSubmit={handleSubmit} spacing={5}>
+          <VStack as="form" onSubmit={handleSubmit} spacing={{ base: 4, md: 5 }}>
             <Box w="full">
-              <Text mb={1} fontSize="sm" color="text.2">Numéro de cycle</Text>
+              <Text mb={1} fontSize={responsiveText.sm} color="text.2">Numéro de cycle</Text>
               <Input
                 value={form.numero_cycle}
                 onChange={(e) => setForm({ ...form, numero_cycle: e.target.value })}
@@ -77,13 +80,13 @@ export default function CreateCycle() {
                 _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
                 placeholder="Ex: CYC-2026-001"
                 required
-                h={8}
-                fontSize="sm"
+                h={{ base: 8, md: 8 }}
+                fontSize={responsiveText.sm}
               />
             </Box>
 
             <Box w="full">
-              <Text mb={1} fontSize="sm" color="text.2">Date de réception</Text>
+              <Text mb={1} fontSize={responsiveText.sm} color="text.2">Date de réception</Text>
               <Input
                 type="date"
                 value={form.date_reception}
@@ -92,13 +95,13 @@ export default function CreateCycle() {
                 borderColor="border.1"
                 _focus={{ borderColor: 'accent.1', boxShadow: '0 0 0 1px var(--chakra-colors-accent-1)' }}
                 required
-                h={8}
-                fontSize="sm"
+                h={{ base: 8, md: 8 }}
+                fontSize={responsiveText.sm}
               />
             </Box>
 
             <Box w="full">
-              <Text mb={1} fontSize="sm" color="text.2">Effectif initial</Text>
+              <Text mb={1} fontSize={responsiveText.sm} color="text.2">Effectif initial</Text>
               <Input
                 type="number"
                 value={form.effectif_initial || ''}
@@ -109,13 +112,13 @@ export default function CreateCycle() {
                 placeholder="Nombre de poussins"
                 min={0}
                 required
-                h={8}
-                fontSize="sm"
+                h={{ base: 8, md: 8 }}
+                fontSize={responsiveText.sm}
               />
             </Box>
 
             <Box w="full">
-              <Text mb={1} fontSize="sm" color="text.2">Coût unitaire poussin (KMF)</Text>
+              <Text mb={1} fontSize={responsiveText.sm} color="text.2">Coût unitaire poussin (KMF)</Text>
               <Input
                 type="number"
                 value={form.cout_achat_poussins || ''}
@@ -126,8 +129,8 @@ export default function CreateCycle() {
                 placeholder="Coût par poussin"
                 min={0}
                 required
-                h={8}
-                fontSize="sm"
+                h={{ base: 8, md: 8 }}
+                fontSize={responsiveText.sm}
               />
             </Box>
 
@@ -139,7 +142,7 @@ export default function CreateCycle() {
               w="full"
               isLoading={loading}
               fontWeight="bold"
-              size="sm"
+              size={{ base: "sm", md: "sm" }}
             >
               Créer le cycle
             </Button>

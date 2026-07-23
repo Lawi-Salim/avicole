@@ -20,6 +20,10 @@ export class CreateClientDto {
 
   @IsOptional()
   @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
   adresse?: string;
 
   @IsOptional()

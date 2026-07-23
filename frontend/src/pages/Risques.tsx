@@ -7,7 +7,10 @@ import {
   Heading,
   Input,
   Textarea,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -33,9 +36,10 @@ import {
   useDisclosure,
   Switch,
 } from '@chakra-ui/react';
-import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiChevronDown } from 'react-icons/fi';
 import { risquesService, Risque, CreateRisquePayload } from '../services/risques.service';
 import ConfirmModal from '../components/ConfirmModal';
+import { responsiveText } from '../theme/designTokens';
 
 const CATEGORIES = [
   { value: 'sanitaire', label: 'Sanitaire' },
@@ -152,14 +156,14 @@ export default function Risques() {
   return (
     <VStack spacing={6} align="stretch">
       <HStack justify="space-between" flexWrap="wrap" gap={3}>
-        <Heading size="lg" color="text.1">Risques</Heading>
+        <Heading size={{ base: "md", md: "lg" }} color="text.1">Risques</Heading>
         <Button
           leftIcon={<FiPlus />}
           bg="accent.1"
           color="gray.900"
           _hover={{ bg: 'accent.2' }}
           fontWeight="bold"
-          size="sm"
+          size={{ base: "md", md: "sm" }}
           onClick={openCreate}
         >
           Nouveau risque
@@ -182,7 +186,7 @@ export default function Risques() {
 
       <HStack spacing={2} flexWrap="wrap">
         <Button
-          size="xs"
+          size={{ base: "sm", md: "xs" }}
           variant={filter === 'tous' ? 'solid' : 'ghost'}
           bg={filter === 'tous' ? 'accent.1' : 'transparent'}
           color={filter === 'tous' ? 'gray.900' : 'text.2'}
@@ -193,7 +197,7 @@ export default function Risques() {
         {CATEGORIES.map((cat) => (
           <Button
             key={cat.value}
-            size="xs"
+            size={{ base: "sm", md: "xs" }}
             variant={filter === cat.value ? 'solid' : 'ghost'}
             bg={filter === cat.value ? 'accent.1' : 'transparent'}
             color={filter === cat.value ? 'gray.900' : 'text.2'}
@@ -207,7 +211,7 @@ export default function Risques() {
       {filteredRisques.length === 0 ? (
         <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
           <CardBody>
-            <Text color="text.3" fontSize="sm" textAlign="center" py={6}>Aucun risque enregistré.</Text>
+            <Text color="text.3" fontSize={{ base: "sm", md: "ms" }} textAlign="center" py={6}>Aucun risque enregistré.</Text>
           </CardBody>
         </Card>
       ) : (
@@ -215,28 +219,28 @@ export default function Risques() {
           <Table size="sm" variant="simple">
             <Thead>
               <Tr>
-                <Th color="text.3">Catégorie</Th>
-                <Th color="text.3">Description</Th>
-                <Th color="text.3">Mesure préventive</Th>
-                <Th color="text.3">Seuil alerte</Th>
-                <Th color="text.3">Actif</Th>
+                <Th color="text.3" minW={{ base: "100px", md: "auto" }}>Catégorie</Th>
+                <Th color="text.3" minW={{ base: "150px", md: "auto" }}>Description</Th>
+                <Th color="text.3" minW={{ base: "150px", md: "auto" }}>Mesure préventive</Th>
+                <Th color="text.3" minW={{ base: "120px", md: "auto" }}>Seuil alerte</Th>
+                <Th color="text.3" minW={{ base: "80px", md: "auto" }}>Actif</Th>
                 <Th color="text.3">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
               {filteredRisques.map((risque) => (
                 <Tr key={risque.id}>
-                  <Td>
-                    <Badge colorScheme={risque.categorie === 'sanitaire' ? 'red' : risque.categorie === 'financier' ? 'blue' : risque.categorie === 'marche' ? 'purple' : 'orange'} fontSize="xs">
+                  <Td minW={{ base: "100px", md: "auto" }}>
+                    <Badge colorScheme={risque.categorie === 'sanitaire' ? 'red' : risque.categorie === 'financier' ? 'blue' : risque.categorie === 'marche' ? 'purple' : 'orange'} fontSize={responsiveText.xs}>
                       {CATEGORIES.find((c) => c.value === risque.categorie)?.label || risque.categorie}
                     </Badge>
                   </Td>
-                  <Td color="text.2" maxW="300px">{risque.description}</Td>
-                  <Td color="text.2" maxW="250px">{risque.mesure_preventive || '-'}</Td>
-                  <Td color="text.2">{risque.seuil_alerte || '-'}</Td>
-                  <Td>
+                  <Td color="text.2" maxW="300px" minW={{ base: "150px", md: "auto" }}>{risque.description}</Td>
+                  <Td color="text.2" maxW="250px" minW={{ base: "150px", md: "auto" }}>{risque.mesure_preventive || '-'}</Td>
+                  <Td color="text.2" minW={{ base: "120px", md: "auto" }}>{risque.seuil_alerte || '-'}</Td>
+                  <Td minW={{ base: "80px", md: "auto" }}>
                     <Switch
-                      size="sm"
+                      size={{ base: "md", md: "sm" }}
                       isChecked={risque.actif}
                       onChange={() => toggleActif(risque)}
                       colorScheme="green"
@@ -244,10 +248,10 @@ export default function Risques() {
                   </Td>
                   <Td>
                     <HStack spacing={1}>
-                      <Button size="xs" variant="ghost" color="accent.1" onClick={() => openEdit(risque)}>
+                      <Button size={{ base: "sm", md: "xs" }} variant="ghost" color="accent.1" onClick={() => openEdit(risque)}>
                         <FiEdit2 />
                       </Button>
-                      <Button size="xs" variant="ghost" color="danger.1" onClick={() => { setDeleteTarget(risque); onDeleteOpen(); }}>
+                      <Button size={{ base: "sm", md: "xs" }} variant="ghost" color="danger.1" onClick={() => { setDeleteTarget(risque); onDeleteOpen(); }}>
                         <FiTrash2 />
                       </Button>
                     </HStack>
@@ -267,55 +271,75 @@ export default function Risques() {
           <ModalBody pb={6}>
             <VStack spacing={4}>
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Catégorie</Text>
-                <Select
-                  value={form.categorie}
-                  onChange={(e) => setForm({ ...form, categorie: e.target.value })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  size="sm"
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </Select>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Catégorie</Text>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {CATEGORIES.find(c => c.value === form.categorie)?.label || 'Sélectionner'}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    {CATEGORIES.map((cat) => (
+                      <MenuItem
+                        key={cat.value}
+                        bg="surface.1"
+                        _hover={{ bg: 'surface.2' }}
+                        color="text.1"
+                        fontSize={{ base: "md", md: "sm" }}
+                        onClick={() => setForm({ ...form, categorie: cat.value })}
+                      >
+                        {cat.label}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
               </Box>
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Description</Text>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Description</Text>
                 <Textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   bg="surface.2"
                   borderColor="border.1"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   rows={3}
                 />
               </Box>
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Mesure préventive</Text>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Mesure préventive</Text>
                 <Textarea
                   value={form.mesure_preventive || ''}
                   onChange={(e) => setForm({ ...form, mesure_preventive: e.target.value })}
                   bg="surface.2"
                   borderColor="border.1"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   rows={2}
                 />
               </Box>
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Seuil d'alerte</Text>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Seuil d'alerte</Text>
                 <Input
                   value={form.seuil_alerte || ''}
                   onChange={(e) => setForm({ ...form, seuil_alerte: e.target.value })}
                   bg="surface.2"
                   borderColor="border.1"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                 />
               </Box>
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="outline" fontSize="sm" size="sm" color="text.2" mr={3} onClick={onClose}>Annuler</Button>
+            <Button variant="outline" fontSize={responsiveText.sm} size={{ base: "md", md: "sm" }} color="text.2" mr={3} onClick={onClose}>Annuler</Button>
             <Button
               bg="accent.1"
               color="gray.900"
@@ -323,8 +347,8 @@ export default function Risques() {
               fontWeight="bold"
               onClick={handleSave}
               isDisabled={!form.description}
-              fontSize="sm"
-              size="sm"
+              fontSize={responsiveText.sm}
+              size={{ base: "md", md: "sm" }}
             >
               {editingRisque ? 'Modifier' : 'Créer'}
             </Button>

@@ -23,6 +23,16 @@ export class VentesController {
     return this.ventesService.findByCycle(cycleId);
   }
 
+  @Get('ventes')
+  findAll() {
+    return this.ventesService.findAll();
+  }
+
+  @Get('ventes/:id')
+  findById(@Param('id') id: string) {
+    return this.ventesService.findById(id);
+  }
+
   @Post('ventes')
   create(@Body() dto: CreateVenteDto) {
     return this.ventesService.create(dto);

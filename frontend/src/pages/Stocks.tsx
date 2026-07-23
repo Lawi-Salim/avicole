@@ -6,7 +6,6 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
   Text,
   VStack,
   HStack,
@@ -21,11 +20,16 @@ import {
   Td,
   IconButton,
   Tooltip,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { stocksService, Stock, CreateStockPayload } from '../services/stocks.service';
 import ConfirmModal from '../components/ConfirmModal';
+import { responsiveText } from '../theme/designTokens';
 
 const TYPE_LABELS: Record<string, string> = {
   aliment: 'Aliment',
@@ -142,7 +146,7 @@ export default function Stocks() {
 
   return (
     <VStack spacing={6} align="stretch">
-      <Heading size="lg" color="text.1">Stocks</Heading>
+      <Heading size={{ base: "md", md: "lg" }} color="text.1">Stocks</Heading>
 
       {error && (
         <Alert bg="danger.1" color="white" borderRadius="md" size="sm">
@@ -158,26 +162,44 @@ export default function Stocks() {
       )}
 
       <Box>
-        <Text mb={1} fontSize="sm" color="text.2">Sélectionner un cycle</Text>
-        <Select
-          value={selectedCycle}
-          onChange={(e) => {
-            setSelectedCycle(e.target.value);
-            const cycle = cycles.find(c => c.id === e.target.value);
-            setSelectedCycleData(cycle || null);
-          }}
-          bg="surface.1"
-          borderColor="border.1"
-          maxW="400px"
-          fontSize="sm"
-          h={8}
-        >
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')}
-            </option>
-          ))}
-        </Select>
+        <Text mb={1} fontSize={responsiveText.md} color="text.2">Sélectionner un cycle</Text>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w={{ base: "100%", md: "400px" }}
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+          >
+            {selectedCycle 
+              ? `Cycle #${cycles.find(c => c.id === selectedCycle)?.numero_cycle} — ${new Date(cycles.find(c => c.id === selectedCycle)?.date_reception || '').toLocaleDateString('fr-FR')}`
+              : 'Sélectionner un cycle'
+            }
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1" maxH="300px" overflowY="auto">
+            {cycles.map((c) => (
+              <MenuItem
+                key={c.id}
+                onClick={() => {
+                  setSelectedCycle(c.id);
+                  setSelectedCycleData(c);
+                }}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+              >
+                Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
       </Box>
 
       {Object.keys(stocksByType).length > 0 && (
@@ -185,12 +207,12 @@ export default function Stocks() {
           {Object.entries(stocksByType).map(([type, data]) => (
             <Card key={type} bg="surface.1" borderColor={TYPE_COLORS[type] || 'border.1'} borderWidth="1px">
               <CardBody py={3} px={4}>
-                <Text fontSize="xs" color="text.3">{TYPE_LABELS[type] || type}</Text>
+                <Text fontSize={responsiveText.xs} color="text.3">{TYPE_LABELS[type] || type}</Text>
                 <HStack justify="space-between" mt={1}>
-                  <Text fontSize="sm" color="success.1">Entrées: {data.entree.toLocaleString('fr-FR')}</Text>
-                  <Text fontSize="sm" color="danger.1">Sorties: {data.sortie.toLocaleString('fr-FR')}</Text>
+                  <Text fontSize={responsiveText.sm} color="success.1">Entrées: {data.entree.toLocaleString('fr-FR')}</Text>
+                  <Text fontSize={responsiveText.sm} color="danger.1">Sorties: {data.sortie.toLocaleString('fr-FR')}</Text>
                 </HStack>
-                <Text fontSize="lg" fontWeight="bold" color="text.1" mt={1}>
+                <Text fontSize={responsiveText.lg} fontWeight="bold" color="text.1" mt={1}>
                   Stock: {(data.entree - data.sortie).toLocaleString('fr-FR')}
                 </Text>
               </CardBody>
@@ -204,30 +226,90 @@ export default function Stocks() {
           <CardBody>
             <Heading size="sm" color="text.1" mb={3}>Ajouter un mouvement</Heading>
             <Box as="form" onSubmit={handleSubmit}>
-              <SimpleGrid columns={{ base: 2, md: 6 }} spacing={3}>
-                <Select
-                  value={form.type_stock}
-                  onChange={(e) => setForm({ ...form, type_stock: e.target.value as CreateStockPayload['type_stock'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  borderRadius="md"
-                  size="sm"
-                >
-                  <option value="aliment">Aliment</option>
-                  <option value="vaccin">Vaccin</option>
-                  <option value="litiere">Litière</option>
-                </Select>
-                <Select
-                  value={form.sens}
-                  onChange={(e) => setForm({ ...form, sens: e.target.value as CreateStockPayload['sens'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  borderRadius="md"
-                  size="sm"
-                >
-                  <option value="entree">Entrée</option>
-                  <option value="sortie">Sortie</option>
-                </Select>
+              <SimpleGrid columns={{ base: 1, sm: 2, md: 6 }} spacing={3}>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {TYPE_LABELS[form.type_stock] || form.type_stock}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    <MenuItem
+                      onClick={() => setForm({ ...form, type_stock: 'aliment' })}
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                    >
+                      Aliment
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => setForm({ ...form, type_stock: 'vaccin' })}
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                    >
+                      Vaccin
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => setForm({ ...form, type_stock: 'litiere' })}
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                    >
+                      Litière
+                    </MenuItem>
+                  </MenuList>
+                </Menu>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {form.sens === 'entree' ? 'Entrée' : 'Sortie'}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    <MenuItem
+                      onClick={() => setForm({ ...form, sens: 'entree' })}
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                    >
+                      Entrée
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => setForm({ ...form, sens: 'sortie' })}
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                    >
+                      Sortie
+                    </MenuItem>
+                  </MenuList>
+                </Menu>
                 <Input
                   type="number"
                   placeholder="Quantité"
@@ -236,7 +318,7 @@ export default function Stocks() {
                   bg="surface.2"
                   borderColor="border.1"
                   borderRadius="md"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   min={0}
                   required
                 />
@@ -248,7 +330,7 @@ export default function Stocks() {
                   bg="surface.2"
                   borderColor="border.1"
                   borderRadius="md"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   min={0}
                 />
                 <Input
@@ -258,7 +340,7 @@ export default function Stocks() {
                   bg="surface.2"
                   borderColor="border.1"
                   borderRadius="md"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   required
                 />
                 <HStack>
@@ -269,14 +351,14 @@ export default function Stocks() {
                     bg="surface.2"
                     borderColor="border.1"
                     borderRadius="md"
-                    size="sm"
+                    size={{ base: "md", md: "sm" }}
                   />
                 </HStack>
               </SimpleGrid>
               <HStack justify="flex-end" mt={3}>
                 <Button
                   type="submit"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   bg="accent.1"
                   color="gray.900"
                   _hover={{ bg: 'accent.2' }}
@@ -293,7 +375,7 @@ export default function Stocks() {
       )}
 
       {stocks.length === 0 ? (
-        <Text color="text.3" textAlign="center" py={6}>Aucun mouvement de stock enregistré.</Text>
+        <Text color="text.3" textAlign="center" fontSize="sm" py={6}>Aucun mouvement de stock enregistré.</Text>
       ) : (
         <Box overflowX="auto">
           <Table size="sm" variant="simple">
@@ -321,7 +403,7 @@ export default function Stocks() {
                     {s.sens === 'entree' ? 'Entrée' : 'Sortie'}
                   </Td>
                   <Td color="text.2">{Number(s.quantite).toLocaleString('fr-FR')}</Td>
-                  <Td color="text.2">{Number(s.cout).toLocaleString('fr-FR')} KMF</Td>
+                  <Td color="text.2" minW={{ base: "100px", md: "auto" }}>{Number(s.cout).toLocaleString('fr-FR')} KMF</Td>
                   <Td color="text.2">{s.fournisseur || '—'}</Td>
                   <Td>
                     {selectedCycleData?.statut === 'en_cours' && (

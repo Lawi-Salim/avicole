@@ -8,7 +8,10 @@ import {
   HStack,
   Heading,
   Input,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   SimpleGrid,
   Spinner,
   Table,
@@ -37,7 +40,7 @@ import {
   ModalBody,
   ModalCloseButton,
 } from '@chakra-ui/react';
-import { FiArrowLeft, FiPlus, FiTrash2, FiCheck, FiEdit2 } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiTrash2, FiCheck, FiEdit2, FiDownload, FiEye, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { stocksService, Stock, CreateStockPayload } from '../services/stocks.service';
 import { santeService, Mortalite, CreateMortalitePayload } from '../services/sante.service';
@@ -83,6 +86,7 @@ export default function CycleDetail() {
     cout_achat_poussins: 0,
   });
   const [editLoading, setEditLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Stock form
   const [stockForm, setStockForm] = useState<CreateStockPayload>({
@@ -199,6 +203,28 @@ export default function CycleDetail() {
       setError('Erreur lors de la modification du cycle');
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!id) return;
+    setPdfLoading(true);
+    setError('');
+    try {
+      const response = await cyclesService.exportPdf(id);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport-cycle-${cycle?.numero_cycle || id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Erreur lors de la génération du PDF. Vérifiez que le service PDF est actif.');
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -354,24 +380,68 @@ export default function CycleDetail() {
           >
             {cycle.statut === 'en_cours' ? 'En cours' : 'Clôturé'}
           </Badge>
+          {cycle.statut === 'cloture' && (
+            <>
+              <Tooltip label="Voir le rapport">
+                <IconButton
+                  aria-label="Voir le rapport"
+                  icon={<FiEye />}
+                  size="xs"
+                  variant="ghost"
+                  color="accent.1"
+                  onClick={() => navigate(`/cycles/${id}/rapport`)}
+                />
+              </Tooltip>
+              <Tooltip label="Exporter le rapport PDF">
+                <IconButton
+                  aria-label="Exporter PDF"
+                  icon={<FiDownload />}
+                  size="xs"
+                  variant="ghost"
+                  color="accent.1"
+                  onClick={handleExportPdf}
+                  isLoading={pdfLoading}
+                />
+              </Tooltip>
+            </>
+          )}
         </HStack>
 
         {cycle.statut === 'en_cours' && (
           <HStack>
-            <Select
-              value={newPhase}
-              onChange={(e) => setNewPhase(e.target.value)}
-              bg="surface.1"
-              borderColor="border.1"
-              w="auto"
-              size="sm"
-              borderRadius="md"
-              _focus={{ borderColor: 'accent.1' }}
-            >
-              {PHASES.map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </Select>
+            <Menu>
+              <MenuButton
+                as={Button}
+                w="auto"
+                minW={{ base: "200px", md: "160px" }}
+                h={{ base: 10, md: 8 }}
+                size={{ base: "md", md: "sm" }}
+                bg="surface.2"
+                borderColor="border.1"
+                borderWidth="1px"
+                borderRadius="md"
+                rightIcon={<FiChevronDown />}
+                textAlign="left"
+                justifyContent="space-between"
+                flexShrink={0}
+              >
+                {PHASES.find((p) => p.value === newPhase)?.label || 'Sélectionner'}
+              </MenuButton>
+              <MenuList bg="surface.1" borderColor="border.1">
+                {PHASES.map((p) => (
+                  <MenuItem
+                    key={p.value}
+                    bg="surface.1"
+                    _hover={{ bg: 'surface.2' }}
+                    color="text.1"
+                    fontSize={{ base: "md", md: "sm" }}
+                    onClick={() => setNewPhase(p.value as string)}
+                  >
+                    {p.label}
+                  </MenuItem>
+                ))}
+              </MenuList>
+            </Menu>
             <Button
               size="sm"
               bg="accent.1"
@@ -380,6 +450,7 @@ export default function CycleDetail() {
               leftIcon={<FiCheck />}
               onClick={handleChangePhase}
               fontWeight="bold"
+              flexShrink={0}
             >
               Appliquer
             </Button>
@@ -391,6 +462,7 @@ export default function CycleDetail() {
               onClick={checkVentesImpayes}
               isLoading={cloturing}
               fontWeight="bold"
+              flexShrink={0}
             >
               Clôturer
             </Button>
@@ -429,14 +501,14 @@ export default function CycleDetail() {
 
       {/* Onglets Stocks / Mortalité */}
       <Tabs variant="enclosed" colorScheme="blue">
-        <TabList>
-          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+        <TabList w={{ base: "100%", md: "auto" }}>
+          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3" flex={{ base: 1, md: 'auto' }}>
             Stocks ({stocks.length})
           </Tab>
-          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3" flex={{ base: 1, md: 'auto' }}>
             Mortalite ({mortalites.length})
           </Tab>
-          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3">
+          <Tab fontSize="sm" _selected={{ bg: 'surface.2', color: 'accent.1' }} color="text.3" flex={{ base: 1, md: 'auto' }}>
             Bilan financier
           </Tab>
         </TabList>
@@ -450,29 +522,75 @@ export default function CycleDetail() {
                   <Heading size="sm" color="text.1" mb={3}>Ajouter un mouvement</Heading>
                   <Box as="form" onSubmit={handleAddStock}>
                     <SimpleGrid columns={{ base: 2, md: 6 }} spacing={3}>
-                      <Select
-                        value={stockForm.type_stock}
-                        onChange={(e) => setStockForm({ ...stockForm, type_stock: e.target.value as CreateStockPayload['type_stock'] })}
-                        bg="surface.2"
-                        borderColor="border.1"
-                        size="sm"
-                        borderRadius="md"
-                      >
-                        <option value="aliment">Aliment</option>
-                        <option value="vaccin">Vaccin</option>
-                        <option value="litiere">Litière</option>
-                      </Select>
-                      <Select
-                        value={stockForm.sens}
-                        onChange={(e) => setStockForm({ ...stockForm, sens: e.target.value as CreateStockPayload['sens'] })}
-                        bg="surface.2"
-                        borderColor="border.1"
-                        size="sm"
-                        borderRadius="md"
-                      >
-                        <option value="entree">Entrée</option>
-                        <option value="sortie">Sortie</option>
-                      </Select>
+                      <Menu>
+                        <MenuButton
+                          as={Button}
+                          w="100%"
+                          h={{ base: 10, md: 8 }}
+                          size={{ base: "md", md: "sm" }}
+                          bg="surface.2"
+                          borderColor="border.1"
+                          borderWidth="1px"
+                          borderRadius="md"
+                          rightIcon={<FiChevronDown />}
+                          textAlign="left"
+                          justifyContent="space-between"
+                        >
+                          {TYPE_STOCK_LABELS[stockForm.type_stock] || stockForm.type_stock}
+                        </MenuButton>
+                        <MenuList bg="surface.1" borderColor="border.1">
+                          {[
+                            { value: 'aliment', label: 'Aliment' },
+                            { value: 'vaccin', label: 'Vaccin' },
+                            { value: 'litiere', label: 'Litière' },
+                          ].map((opt) => (
+                            <MenuItem
+                              key={opt.value}
+                              bg="surface.1"
+                              _hover={{ bg: 'surface.2' }}
+                              color="text.1"
+                              fontSize={{ base: "md", md: "sm" }}
+                              onClick={() => setStockForm({ ...stockForm, type_stock: opt.value as CreateStockPayload['type_stock'] })}
+                            >
+                              {opt.label}
+                            </MenuItem>
+                          ))}
+                        </MenuList>
+                      </Menu>
+                      <Menu>
+                        <MenuButton
+                          as={Button}
+                          w="100%"
+                          h={{ base: 10, md: 8 }}
+                          size={{ base: "md", md: "sm" }}
+                          bg="surface.2"
+                          borderColor="border.1"
+                          borderWidth="1px"
+                          borderRadius="md"
+                          rightIcon={<FiChevronDown />}
+                          textAlign="left"
+                          justifyContent="space-between"
+                        >
+                          {stockForm.sens === 'entree' ? 'Entrée' : 'Sortie'}
+                        </MenuButton>
+                        <MenuList bg="surface.1" borderColor="border.1">
+                          {[
+                            { value: 'entree', label: 'Entrée' },
+                            { value: 'sortie', label: 'Sortie' },
+                          ].map((opt) => (
+                            <MenuItem
+                              key={opt.value}
+                              bg="surface.1"
+                              _hover={{ bg: 'surface.2' }}
+                              color="text.1"
+                              fontSize={{ base: "md", md: "sm" }}
+                              onClick={() => setStockForm({ ...stockForm, sens: opt.value as CreateStockPayload['sens'] })}
+                            >
+                              {opt.label}
+                            </MenuItem>
+                          ))}
+                        </MenuList>
+                      </Menu>
                       <Input
                         type="number"
                         placeholder="Quantité"
@@ -537,7 +655,7 @@ export default function CycleDetail() {
             )}
 
             {stocks.length === 0 ? (
-              <Text color="text.3" textAlign="center" py={6}>Aucun mouvement de stock.</Text>
+              <Text color="text.3" textAlign="center" fontSize="sm" py={6}>Aucun mouvement de stock.</Text>
             ) : (
               <Box overflowX="auto">
                 <Table size="sm" variant="simple">

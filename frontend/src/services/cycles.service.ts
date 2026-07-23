@@ -51,4 +51,7 @@ export const cyclesService = {
 
   getFinances: (id: string) =>
     api.get(`/cycles/${id}/finances`).then((r) => r.data),
+
+  exportPdf: (id: string) =>
+    api.get(`/rapports/cycle/${id}/pdf`, { responseType: 'blob' }),
 };

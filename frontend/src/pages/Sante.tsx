@@ -6,8 +6,11 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
   Text,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   VStack,
   HStack,
   Alert,
@@ -25,11 +28,12 @@ import {
   Badge,
   Divider,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiCheck } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiCheck, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { santeService, Mortalite, CreateMortalitePayload } from '../services/sante.service';
 import { vaccinationsService, Vaccination, CreateVaccinationPayload } from '../services/vaccinations.service';
 import ConfirmModal from '../components/ConfirmModal';
+import { responsiveText } from '../theme/designTokens';
 
 export default function Sante() {
   const [cycles, setCycles] = useState<Cycle[]>([]);
@@ -171,7 +175,7 @@ export default function Sante() {
 
   return (
     <VStack spacing={6} align="stretch">
-      <Heading size="lg" color="text.1">Santé</Heading>
+      <Heading size={{ base: "md", md: "lg" }} color="text.1">Santé</Heading>
 
       {error && (
         <Alert bg="danger.1" color="white" borderRadius="md" size="sm">
@@ -187,64 +191,83 @@ export default function Sante() {
       )}
 
       <Box>
-        <Text mb={1} fontSize="sm" color="text.2">Sélectionner un cycle</Text>
-        <Select
-          value={selectedCycle}
-          onChange={(e) => {
-            setSelectedCycle(e.target.value);
-            const cycle = cycles.find(c => c.id === e.target.value);
-            setSelectedCycleData(cycle || null);
-          }}
-          bg="surface.1"
-          borderColor="border.1"
-          maxW="400px"
-          fontSize="sm"
-          h={8}
-        >
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')}
-            </option>
-          ))}
-        </Select>
+        <Text mb={1} fontSize={{ base: "md", md: "md" }} color="text.2">Sélectionner un cycle</Text>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w={{ base: "100%", md: "400px" }}
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+          >
+            {selectedCycle
+              ? `Cycle #${cycles.find(c => c.id === selectedCycle)?.numero_cycle} — ${new Date(cycles.find(c => c.id === selectedCycle)?.date_reception || '').toLocaleDateString('fr-FR')}`
+              : 'Sélectionner un cycle'
+            }
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1" maxH="300px" overflowY="auto">
+            {cycles.map((c) => (
+              <MenuItem
+                key={c.id}
+                onClick={() => {
+                  setSelectedCycle(c.id);
+                  setSelectedCycleData(c);
+                }}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+              >
+                Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
       </Box>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
         <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
           <CardBody py={3} px={4}>
-            <Text fontSize="xs" color="text.3">Mortalité cumulée</Text>
-            <Text fontSize="2xl" fontWeight="bold" color={Number(tauxMortalite) > 5 ? 'danger.1' : 'text.1'}>{totalMortalite}</Text>
-            <Text fontSize="xs" color={Number(tauxMortalite) > 5 ? 'danger.1' : 'text.3'}>{tauxMortalite}% de l'effectif initial</Text>
+            <Text fontSize={{ base: "ms", md: "xs" }} color="text.3">Mortalité cumulée</Text>
+            <Text fontSize={responsiveText['2xl']} fontWeight="bold" color={Number(tauxMortalite) > 5 ? 'danger.1' : 'text.1'}>{totalMortalite}</Text>
+            <Text fontSize={{ base: "sm", md: "xs" }} color={Number(tauxMortalite) > 5 ? 'danger.1' : 'text.3'}>{tauxMortalite}% de l'effectif initial</Text>
           </CardBody>
         </Card>
         <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
           <CardBody py={3} px={4}>
-            <Text fontSize="xs" color="text.3">Vaccinations</Text>
-            <Text fontSize="2xl" fontWeight="bold" color="text.1">{vaccinations.length}</Text>
-            <Text fontSize="xs" color="text.3">{vaccinations.filter(v => v.date_realisee).length} réalisées / {vaccinations.filter(v => !v.date_realisee).length} en attente</Text>
+            <Text fontSize={{ base: "sm", md: "xs" }} color="text.3">Vaccinations</Text>
+            <Text fontSize={responsiveText['2xl']} fontWeight="bold" color="text.1">{vaccinations.length}</Text>
+            <Text fontSize={{ base: "sm", md: "xs" }} color="text.3">{vaccinations.filter(v => v.date_realisee).length} réalisées / {vaccinations.filter(v => !v.date_realisee).length} en attente</Text>
           </CardBody>
         </Card>
       </SimpleGrid>
 
       {/* Section Mortalité */}
       <Box>
-        <Heading size="md" color="text.1" mb={3}>Mortalité</Heading>
+        <Heading size="md" color="text.1" mb={3} fontSize={{ base: "ms", md: "md" }}>Mortalité</Heading>
         {selectedCycleData?.statut === 'en_cours' && (
           <Card bg="surface.1" borderColor="border.1" borderWidth="1px" mb={4}>
             <CardBody>
+              <Heading size="xs" color="text.2" mb={2} fontSize={{ base: "sm", md: "ms" }}>Enregistrer une mortalité</Heading>
               <Box as="form" onSubmit={handleMortaliteSubmit}>
-                <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
-                  <Input type="date" value={mortaliteForm.date} onChange={(e) => setMortaliteForm({ ...mortaliteForm, date: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size="sm" required />
-                  <Input type="number" placeholder="Nombre" value={mortaliteForm.nombre || ''} onChange={(e) => setMortaliteForm({ ...mortaliteForm, nombre: Number(e.target.value) })} bg="surface.2" borderColor="border.1" borderRadius="md" size="sm" min={1} required />
-                  <Input placeholder="Cause (optionnel)" value={mortaliteForm.cause || ''} onChange={(e) => setMortaliteForm({ ...mortaliteForm, cause: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size="sm" />
-                  <Button type="submit" size="sm" bg="accent.1" color="gray.900" _hover={{ bg: 'accent.2' }} leftIcon={<FiPlus />} isLoading={submitting} fontWeight="bold">Ajouter</Button>
+                <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={3}>
+                  <Input type="date" value={mortaliteForm.date} onChange={(e) => setMortaliteForm({ ...mortaliteForm, date: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size={{ base: "md", md: "sm" }} required />
+                  <Input type="number" placeholder="Nombre" value={mortaliteForm.nombre || ''} onChange={(e) => setMortaliteForm({ ...mortaliteForm, nombre: Number(e.target.value) })} bg="surface.2" borderColor="border.1" borderRadius="md" size={{ base: "md", md: "sm" }} min={1} required />
+                  <Input placeholder="Cause (optionnel)" value={mortaliteForm.cause || ''} onChange={(e) => setMortaliteForm({ ...mortaliteForm, cause: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size={{ base: "md", md: "sm" }} />
+                  <Button type="submit" size={{ base: "md", md: "sm" }} bg="accent.1" color="gray.900" _hover={{ bg: 'accent.2' }} leftIcon={<FiPlus />} isLoading={submitting} fontWeight="bold">Ajouter</Button>
                 </SimpleGrid>
               </Box>
             </CardBody>
           </Card>
         )}
         {mortalites.length === 0 ? (
-          <Text color="text.3" fontSize="sm" textAlign="center" py={4}>Aucune mortalité enregistrée.</Text>
+          <Text color="text.3" fontSize={{ base: "sm", md: "ms" }} textAlign="center" py={4}>Aucune mortalité enregistrée.</Text>
         ) : (
           <Box overflowX="auto">
             <Table size="sm" variant="simple">
@@ -281,24 +304,24 @@ export default function Sante() {
 
       {/* Section Vaccinations */}
       <Box>
-        <Heading size="md" color="text.1" mb={3}>Vaccinations</Heading>
+        <Heading size="md" color="text.1" mb={3} fontSize={{ base: "ms", md: "md" }}>Vaccinations</Heading>
         {selectedCycleData?.statut === 'en_cours' && (
           <Card bg="surface.1" borderColor="border.1" borderWidth="1px" mb={4}>
             <CardBody>
-              <Heading size="xs" color="text.2" mb={2}>Planifier une vaccination</Heading>
+              <Heading size="xs" color="text.2" mb={2} fontSize={{ base: "sm", md: "ms" }}>Planifier une vaccination</Heading>
               <Box as="form" onSubmit={handleVaccinationSubmit}>
-                <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
-                  <Input placeholder="Nom du produit" value={vaccinationForm.produit} onChange={(e) => setVaccinationForm({ ...vaccinationForm, produit: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size="sm" required />
-                  <Input type="date" value={vaccinationForm.date_prevue} onChange={(e) => setVaccinationForm({ ...vaccinationForm, date_prevue: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size="sm" required />
-                  <Input placeholder="Notes (optionnel)" value={vaccinationForm.notes || ''} onChange={(e) => setVaccinationForm({ ...vaccinationForm, notes: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size="sm" />
-                  <Button type="submit" size="sm" bg="accent.1" color="gray.900" _hover={{ bg: 'accent.2' }} leftIcon={<FiPlus />} isLoading={submitting} fontWeight="bold">Planifier</Button>
+                <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={3}>
+                  <Input placeholder="Nom du produit" value={vaccinationForm.produit} onChange={(e) => setVaccinationForm({ ...vaccinationForm, produit: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size={{ base: "md", md: "sm" }} required />
+                  <Input type="date" value={vaccinationForm.date_prevue} onChange={(e) => setVaccinationForm({ ...vaccinationForm, date_prevue: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size={{ base: "md", md: "sm" }} required />
+                  <Input placeholder="Notes (optionnel)" value={vaccinationForm.notes || ''} onChange={(e) => setVaccinationForm({ ...vaccinationForm, notes: e.target.value })} bg="surface.2" borderColor="border.1" borderRadius="md" size={{ base: "md", md: "sm" }} />
+                  <Button type="submit" size={{ base: "md", md: "sm" }} bg="accent.1" color="gray.900" _hover={{ bg: 'accent.2' }} leftIcon={<FiPlus />} isLoading={submitting} fontWeight="bold">Planifier</Button>
                 </SimpleGrid>
               </Box>
             </CardBody>
           </Card>
         )}
         {vaccinations.length === 0 ? (
-          <Text color="text.3" fontSize="sm" textAlign="center" py={4}>Aucune vaccination planifiée.</Text>
+          <Text color="text.3" fontSize={{ base: "sm", md: "ms" }} textAlign="center" py={4}>Aucune vaccination planifiée.</Text>
         ) : (
           <Box overflowX="auto">
             <Table size="sm" variant="simple">
@@ -318,7 +341,7 @@ export default function Sante() {
                     <Td color="text.2">{new Date(v.date_prevue).toLocaleDateString('fr-FR')}</Td>
                     <Td color="text.2">{v.date_realisee ? new Date(v.date_realisee).toLocaleDateString('fr-FR') : '—'}</Td>
                     <Td>
-                      <Badge fontSize="xs" colorScheme={v.date_realisee ? 'green' : 'orange'}>
+                      <Badge fontSize={responsiveText.xs} colorScheme={v.date_realisee ? 'green' : 'orange'}>
                         {v.date_realisee ? 'Réalisée' : 'En attente'}
                       </Badge>
                     </Td>

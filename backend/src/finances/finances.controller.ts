@@ -10,11 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
 import { FinancesService } from './finances.service.js';
 import { CreateDepenseDto } from './dto/create-depense.dto.js';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class FinancesController {
   constructor(@Inject(FinancesService) private readonly financesService: FinancesService) {}
 
@@ -23,16 +25,19 @@ export class FinancesController {
     return this.financesService.findByCycle(cycleId);
   }
 
+  @Roles('admin', 'comptable')
   @Post('depenses')
   create(@Body() dto: CreateDepenseDto) {
     return this.financesService.create(dto);
   }
 
+  @Roles('admin', 'comptable')
   @Put('depenses/:id')
   update(@Param('id') id: string, @Body() dto: Partial<CreateDepenseDto>) {
     return this.financesService.update(id, dto);
   }
 
+  @Roles('admin', 'comptable')
   @Delete('depenses/:id')
   remove(@Param('id') id: string) {
     return this.financesService.remove(id);

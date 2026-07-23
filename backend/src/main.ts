@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module.js';
 import { seedAdmin } from './seed/admin.seed.js';
 
@@ -26,6 +26,6 @@ async function bootstrap() {
   );
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`Server running on http://localhost:${port}`);
+  Logger.log(`Server running on http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

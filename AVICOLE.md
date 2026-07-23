@@ -164,16 +164,102 @@ charges le dit explicitement : sans cycle, rien d'autre n'a de sens.
 ### V1.0 — Consolidation
 **Objectif :** rendre le système prêt pour la durée et pour plusieurs personnes.
 
-- [ ] Rôles multi-utilisateurs (admin / employé / comptable) avec permissions
-- [ ] Service Python (`pdf-service`) branché : génération PDF rapport de cycle
-- [ ] Service Python : génération PDF facture de vente
-- [ ] Export de rapports comparatifs multi-cycles
-- [ ] Export CSV des données brutes
-- [ ] Ajouter un export CSV de la liste des clients
-- [ ] Amélioration ergonomie mobile (saisie rapide terrain)
-- [ ] Étude/prototype d'un mode dégradé/offline (mise en cache locale + synchronisation différée)
-- [ ] Sauvegardes automatiques régulières en place et testées (restauration vérifiée)
-- [ ] **Test de validation :** test de montée en charge — le système reste cohérent après plusieurs cycles enregistrés, avec 2 utilisateurs actifs
+### Plans d'actions par phase : 
+1. *Rôle et permissions (fondation)* ✅
+  - **Guards par rôle** : Créer `RolesGuard` (admin/employé/comptable) dans `auth/`
+  - **Décorateur les rôles** : `@Roles('admin)` pour protéger les contrôleurs
+  - **Appliquer les guards** : Sécuriser les modules sensibles (paramétrages, finances, suppression)
+  - **Écran de gestion utilisateurs** : CRUD utilisateurs avec attribution de rôle (frontend + backend)
+
+2. *Service PDF (rapport de cycle)* ✅
+  - **Compléter `main.py`** : Endpoint `/rapport-cycle` avec template HTML
+  - **Template rapport cycle** : Créer `templates/cycle-rapport.html` avec données du cycle
+  - **Module backend `rapports/`** : Service qui appelle le PDF-service via HTTP
+  - **Bouton "Exporter PDF"** : Sur la page de détail d'un cycle cloturé
+
+3. *Service PDF (factures)* ✅
+  - **Endpoint `/facture` dans `pdf-service`** : Template facture de vente
+  - **Template facture** : `pdf-service/templates/invoice.html` existe déjà à compléter
+  - **Intégration ventes** : Bouton "Générer facture PDF" sur chaque vente
+  - **Système de remises** : Configuration par type de client et volume, mode de sélection, calcul automatique, intégration ventes et factures
+
+4. *Exports CSV* ✅
+  - **Endpoint export cycles** : `/export/cycles` → CSV multi-cycles comparatif
+  - **Endpoint export clients** : `/export/clients` → CSV liste clients
+  - **Endpoint export ventes** : `/export/ventes` → CSV liste ventes
+  - **Endpoint export données brutes** : `/export/donnees-brute` → dump CSV complet
+  - **Boutons d'export** : Ajouter sur les pages correspondantes (Dashboard, Clients)
+
+5. *Mobile et offline* ⌛
+  - **Audit et responsive** : Tester et corriger l'affichage mobile des pages de saisie ✅
+  - **Saisie rapide terrain** : Mode compact pour Stocks, Mortalité, Ventes ✅
+  - **Prototype offline** : Étude de faisabilité (Service Worker + IndexedDB + sync queue)
+
+6. *Sauvegarde* ⌛
+  - **Script backup automatique** : Cron PostgreSQL dump vers stockage externe
+  - **Script restauration** : Script testé de restore depuis le dump
+  - **Test restauration** : Restaurer un dump et vérifier l'intégrité des données
+
+7. *Validation finale* ⌛
+  - **Test de montée en charge** : 2 utilisateurs simultanés, plusieurs cycles
+  - **Vérification cohérence** : Données restent intactes après charge
+
+#### Phase 1  — ✅ Complète
+*Phase 1 bien implémentée :*
+  - ✅ `roles.decorator.ts` créé avec décorateur `@Roles()`
+  - ✅ `roles.guard.ts` créé avec vérification des rôles et 403 Forbidden
+  - ✅ `utilisateurs.controller.ts` sécurisé avec `@Roles('admin')` et guards
+  - ✅ `auth.service.ts` avec méthodes CRUD complètes (findAll, findOne, update, toggleActif, remove)
+  - ✅ Page frontend `Utilisateurs.tsx` complète avec tableau, formulaire création/modification, toggle actif, suppression
+  - ✅ Contrôleurs sensibles sécurisés : parametrages, finances, clients, cycles avec décorateurs `@Roles`
+
+#### Phase 2  — ✅ Complète
+*Phase 2 parfaitement implémentée :*
+  - ✅ Template HTML `cycle-report.html` (618 lignes) — Design professionnel avec sections : infos cycle, mortalité (barre visuelle), dépenses (tableau + graphique barres), ventes, bilan financier (cartes + graphique)
+  - ✅ Service Python `main.py` — Endpoint `/rapport-cycle` fonctionnel avec Jinja2 + WeasyPrint
+  - ✅ Module NestJS `rapports/` — Service (récupère données, appelle Python), Contrôleur (`GET /rapports/cycle/:id/pdf`), Module (imports corrects)
+  - ✅ Intégration backend — RapportsModule ajouté dans app.module.ts
+  - ✅ Frontend — Bouton export PDF dans CycleDetail.tsx (visible si cycle clôturé), méthode handleExportPdf, service cyclesService.exportPdf
+
+#### Phase 3 — ✅ Complète
+*Phase 3 parfaitement implémentée :*
+  - ✅ Template HTML `invoice.html` — Variables Jinja2 pour en-tête, client, métadonnées, articles et totaux
+  - ✅ Service Python `main.py` — Endpoints POST `/facture` (PDF WeasyPrint) et `/facture-html` (preview)
+  - ✅ NestJS Backend `rapports.controller.ts` — `buildFacturePayload(venteId)` avec SQL LEFT JOIN
+  - ✅ Logique de facturation — Format `FAC-YYYYMM-XXXXXX`, échéance J+7 ("7 jours net")
+  - ✅ Endpoints Backend — `GET /rapports/facture/:id/pdf` et `/html` avec gestion erreurs 404/503
+  - ✅ Frontend React — Bouton "Générer facture" (FiDownload) dans `Ventes.tsx`
+  - ✅ Système de remises — Configuration par type de client et volume, mode de sélection, intégration ventes et factures
+    - ✅ Migration SQL `remises_configuration` : table avec types de client et paliers de volume
+    - ✅ Migration SQL `mode_remise` : colonne pour sélectionner le mode actif (type_client | volume | aucun)
+    - ✅ Backend entity `RemiseConfiguration` : mapping Sequelize avec champs type_client, seuils, remise_pct, actif
+    - ✅ Backend `RemisesService` : méthodes CRUD, calculateRemise(), getRemiseMode(), setRemiseMode()
+    - ✅ Backend `RemisesController` : endpoints sécurisés (admin/comptable) pour gestion remises et mode
+    - ✅ Backend `RemisesModule` : encapsulation du module avec dépendances
+    - ✅ Frontend `remises.service.ts` : service API avec interfaces et méthodes CRUD
+    - ✅ Frontend `Parametrage.tsx` : section Remises avec RadioGroup mode, inputs types client, inputs paliers volume
+    - ✅ Backend intégration `VentesService` : injection `RemisesService`, calcul automatique remise lors création vente
+    - ✅ Migration SQL champ `remise` dans `ventes` : ajout colonne remise avec défaut 0
+    - ✅ Backend payload PDF : passage remise dans `buildFacturePayload` et `buildFactureGroupeePayload`
+    - ✅ Frontend `Ventes.tsx` : colonne Remise dans tableau, affichage orange si > 0, calcul total ajusté
+    - ✅ Template `invoice.html` : condition Jinja2 masquer échéance/conditions si statut == 'paye'
+  - ✅ Facture groupée — Agrégation ventes par client/cycle, format `FAC-YYYYMM-XXXXXX-YZYZYZ`, preview `FactureGroupeePreview.tsx`
+  - ✅ Template condition — Masquer échéance/conditions si facture payée
+
+#### Phase 4 - ✅ Complète
+*Phase 4 bien implémentée :*
+  - ✅ Module backend `export/` — Controller et service centralisés pour exports CSV
+  - ✅ Endpoint `/export/cycles` — CSV multi-cycles comparatif avec filtre period optionnel
+  - ✅ Endpoint `/export/clients` — CSV liste clients (non supprimés uniquement)
+  - ✅ Endpoint `/export/ventes` — CSV ventes avec filtres cycleId et statut optionnels
+  - ✅ Endpoint `/export/donnees-brutes` — Dump CSV complet (admin only, sections : cycles, mortalités, ventes, dépenses, clients)
+  - ✅ Format CSV — UTF-8 avec BOM, séparateur point-virgule, en-têtes français
+  - ✅ Frontend `export.service.ts` — Service API avec méthodes exportCycles(), exportClients(), exportVentes(), exportDonneesBrutes()
+  - ✅ Frontend `Dashboard.tsx` — Bouton "Exporter CSV" dans section comparatif cycles, utilise exportService.exportCycles(period)
+  - ✅ Frontend `Clients.tsx` — Bouton "Exporter CSV" dans en-tête, utilise exportService.exportClients()
+  - ✅ Frontend `Ventes.tsx` — Bouton "Exporter CSV" dans en-tête, utilise exportService.exportVentes(cycleId, statut)
+  - ✅ Frontend `Parametrage.tsx` — Card "Administration" avec bouton "Exporter données brutes" (admin only)
+  - ✅ Backend `app.module.ts` — Import et intégration de ExportModule
 
 ---
 

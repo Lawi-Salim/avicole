@@ -6,7 +6,10 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -31,9 +34,12 @@ import {
   ModalCloseButton,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiChevronDown } from 'react-icons/fi';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { utilisateursService, Utilisateur, CreateUtilisateurPayload } from '../services/utilisateurs.service';
 import ConfirmModal from '../components/ConfirmModal';
+import { responsiveText } from '../theme/designTokens';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrateur',
@@ -48,6 +54,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function Utilisateurs() {
+  const { user } = useAuth();
   const [utilisateurs, setUtilisateurs] = useState<Utilisateur[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -65,8 +72,14 @@ export default function Utilisateurs() {
   });
 
   useEffect(() => {
-    loadUtilisateurs();
-  }, []);
+    if (user?.role === 'admin') {
+      loadUtilisateurs();
+    }
+  }, [user]);
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/cycles" replace />;
+  }
 
   const loadUtilisateurs = () => {
     utilisateursService.getAll()
@@ -142,8 +155,8 @@ export default function Utilisateurs() {
   return (
     <VStack spacing={6} align="stretch">
       <HStack justify="space-between" flexWrap="wrap" gap={2}>
-        <Heading size="lg" color="text.1">Utilisateurs</Heading>
-        <Button leftIcon={<FiPlus />} bg="accent.1" color="gray.900" _hover={{ bg: 'accent.2' }} fontWeight="bold" size="sm" onClick={openCreate}>
+        <Heading size={{ base: "md", md: "lg" }} color="text.1">Utilisateurs</Heading>
+        <Button leftIcon={<FiPlus />} bg="accent.1" color="gray.900" _hover={{ bg: 'accent.2' }} fontWeight="bold" size={{ base: "md", md: "sm" }} onClick={openCreate}>
           Nouvel utilisateur
         </Button>
       </HStack>
@@ -168,33 +181,33 @@ export default function Utilisateurs() {
           <Table size="sm" variant="simple">
             <Thead>
               <Tr>
-                <Th color="text.3">Nom</Th>
-                <Th color="text.3">Email</Th>
-                <Th color="text.3">Rôle</Th>
-                <Th color="text.3">Actif</Th>
+                <Th color="text.3" minW={{ base: "120px", md: "auto" }}>Nom</Th>
+                <Th color="text.3" minW={{ base: "150px", md: "auto" }}>Email</Th>
+                <Th color="text.3" minW={{ base: "100px", md: "auto" }}>Rôle</Th>
+                <Th color="text.3" minW={{ base: "80px", md: "auto" }}>Actif</Th>
                 <Th color="text.3">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
               {utilisateurs.map((u) => (
                 <Tr key={u.id}>
-                  <Td color="text.2" fontWeight="medium">{u.nom}</Td>
-                  <Td color="text.2">{u.email}</Td>
-                  <Td>
-                    <Box as="span" px={2} py={0.5} borderRadius="full" fontSize="xs" fontWeight="medium" bg={ROLE_COLORS[u.role] || 'surface.3'} color="white">
+                  <Td color="text.2" fontWeight="medium" minW={{ base: "120px", md: "auto" }}>{u.nom}</Td>
+                  <Td color="text.2" minW={{ base: "150px", md: "auto" }}>{u.email}</Td>
+                  <Td minW={{ base: "100px", md: "auto" }}>
+                    <Box as="span" px={2} py={0.5} borderRadius="full" fontSize={responsiveText.xs} fontWeight="medium" bg={ROLE_COLORS[u.role] || 'surface.3'} color="white">
                       {ROLE_LABELS[u.role] || u.role}
                     </Box>
                   </Td>
-                  <Td>
-                    <Switch size="sm" isChecked={u.actif} onChange={() => handleToggleActif(u)} colorScheme="green" />
+                  <Td minW={{ base: "80px", md: "auto" }}>
+                    <Switch size={{ base: "md", md: "sm" }} isChecked={u.actif} onChange={() => handleToggleActif(u)} colorScheme="green" />
                   </Td>
                   <Td>
                     <HStack spacing={1}>
                       <Tooltip label="Modifier">
-                        <IconButton aria-label="Modifier" icon={<FiEdit2 />} size="xs" variant="ghost" color="accent.1" onClick={() => openEdit(u)} />
+                        <IconButton aria-label="Modifier" icon={<FiEdit2 />} size={{ base: "sm", md: "xs" }} variant="ghost" color="accent.1" onClick={() => openEdit(u)} />
                       </Tooltip>
                       <Tooltip label="Supprimer">
-                        <IconButton aria-label="Supprimer" icon={<FiTrash2 />} size="xs" variant="ghost" color="danger.1" onClick={() => setDeleteTargetId(u.id)} />
+                        <IconButton aria-label="Supprimer" icon={<FiTrash2 />} size={{ base: "sm", md: "xs" }} variant="ghost" color="danger.1" onClick={() => setDeleteTargetId(u.id)} />
                       </Tooltip>
                     </HStack>
                   </Td>
@@ -213,32 +226,55 @@ export default function Utilisateurs() {
           <ModalBody pb={6}>
             <VStack spacing={4}>
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Nom</Text>
-                <Input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} bg="surface.2" borderColor="border.1" size="sm" />
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Nom</Text>
+                <Input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} bg="surface.2" borderColor="border.1" size={{ base: "md", md: "sm" }} />
               </Box>
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Email</Text>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} bg="surface.2" borderColor="border.1" size="sm" />
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Email</Text>
+                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} bg="surface.2" borderColor="border.1" size={{ base: "md", md: "sm" }} />
               </Box>
               {!editingId && (
                 <Box w="100%">
-                  <Text mb={1} fontSize="sm" color="text.2">Mot de passe</Text>
-                  <Input type="password" value={form.mot_de_passe} onChange={(e) => setForm({ ...form, mot_de_passe: e.target.value })} bg="surface.2" borderColor="border.1" size="sm" />
+                  <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Mot de passe</Text>
+                  <Input type="password" value={form.mot_de_passe} onChange={(e) => setForm({ ...form, mot_de_passe: e.target.value })} bg="surface.2" borderColor="border.1" size={{ base: "md", md: "sm" }} />
                 </Box>
               )}
               <Box w="100%">
-                <Text mb={1} fontSize="sm" color="text.2">Rôle</Text>
-                <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} bg="surface.2" borderColor="border.1" size="sm">
-                  <option value="admin">Administrateur</option>
-                  <option value="employe">Employé</option>
-                  <option value="comptable">Comptable</option>
-                </Select>
+                <Text mb={1} fontSize={{ base: "sm", md: "ms" }} color="text.2">Rôle</Text>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {form.role === 'admin' ? 'Administrateur' : form.role === 'employe' ? 'Employé' : 'Comptable'}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    <MenuItem onClick={() => setForm({ ...form, role: 'admin' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                      Administrateur
+                    </MenuItem>
+                    <MenuItem onClick={() => setForm({ ...form, role: 'employe' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                      Employé
+                    </MenuItem>
+                    <MenuItem onClick={() => setForm({ ...form, role: 'comptable' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                      Comptable
+                    </MenuItem>
+                  </MenuList>
+                </Menu>
               </Box>
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="outline" fontSize="sm" size="sm" color="text.2" mr={3} onClick={onClose}>Annuler</Button>
-            <Button bg="accent.1" fontSize="sm" size="sm" color="gray.900" _hover={{ bg: 'accent.2' }} fontWeight="bold" onClick={handleSave} isLoading={submitting} isDisabled={!form.nom || !form.email || (!editingId && !form.mot_de_passe)}>
+            <Button variant="outline" fontSize={responsiveText.sm} size={{ base: "md", md: "sm" }} color="text.2" mr={3} onClick={onClose}>Annuler</Button>
+            <Button bg="accent.1" fontSize={responsiveText.sm} size={{ base: "md", md: "sm" }} color="gray.900" _hover={{ bg: 'accent.2' }} fontWeight="bold" onClick={handleSave} isLoading={submitting} isDisabled={!form.nom || !form.email || (!editingId && !form.mot_de_passe)}>
               {editingId ? 'Modifier' : 'Créer'}
             </Button>
           </ModalFooter>
