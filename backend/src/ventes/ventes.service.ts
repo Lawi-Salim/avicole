@@ -1,10 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import { Vente } from './vente.entity.js';
 import { Cycle } from '../cycles/cycle.entity.js';
 import { Mortalite } from '../sante/mortalite.entity.js';
 import { Client } from '../clients/client.entity.js';
+import { RemisesService } from '../remises/remises.service.js';
 import { CreateVenteDto } from './dto/create-vente.dto.js';
 
 @Injectable()
@@ -18,11 +19,36 @@ export class VentesService {
     private readonly mortaliteModel: typeof Mortalite,
     @InjectModel(Client)
     private readonly clientModel: typeof Client,
+    @Inject(RemisesService)
+    private readonly remisesService: RemisesService,
   ) {}
 
   async findByCycle(cycleId: string) {
     return this.venteModel.findAll({
       where: { cycle_id: cycleId },
+      include: [
+        {
+          model: this.clientModel,
+          attributes: ['id', 'nom', 'type_client'],
+        },
+      ],
+      order: [['date', 'DESC']],
+    });
+  }
+
+  async findById(id: string) {
+    return this.venteModel.findByPk(id, {
+      include: [
+        {
+          model: this.clientModel,
+          attributes: ['id', 'nom', 'type_client'],
+        },
+      ],
+    });
+  }
+
+  async findAll() {
+    return this.venteModel.findAll({
       include: [
         {
           model: this.clientModel,
@@ -92,6 +118,17 @@ export class VentesService {
       );
     }
 
+    let remisePct = 0;
+    if (dto.client_id) {
+      const client = await this.clientModel.findByPk(dto.client_id);
+      if (client) {
+        remisePct = await this.remisesService.calculateRemise(client.type_client, dto.quantite);
+      }
+    }
+
+    const montantTotal = dto.quantite * dto.prix_unitaire;
+    const remiseMontant = Number(((montantTotal * remisePct) / 100).toFixed(2));
+
     return this.venteModel.create({
       cycle_id: dto.cycle_id,
       client_id: dto.client_id,
@@ -100,6 +137,8 @@ export class VentesService {
       date: dto.date,
       mode_paiement: dto.mode_paiement,
       statut_paiement: dto.statut_paiement,
+      categorie_produit: dto.categorie_produit || 'poulet_vif',
+      remise: dto.remise ?? remiseMontant,
     });
   }
 

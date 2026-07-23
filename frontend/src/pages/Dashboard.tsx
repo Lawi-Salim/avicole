@@ -6,7 +6,10 @@ import {
   Card,
   CardBody,
   Heading,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   SimpleGrid,
   Spinner,
   Table,
@@ -23,9 +26,10 @@ import {
   Badge,
   IconButton,
 } from '@chakra-ui/react';
-import { FiArrowUpRight, FiArrowDownRight, FiCheck, FiAlertTriangle, FiAlertCircle, FiInfo } from 'react-icons/fi';
+import { FiArrowUpRight, FiArrowDownRight, FiCheck, FiAlertTriangle, FiAlertCircle, FiInfo, FiDownload, FiChevronDown } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { cyclesService, Cycle } from '../services/cycles.service';
+import { exportService } from '../services/export.service';
 import { santeService, Mortalite } from '../services/sante.service';
 import { ventesService, Vente } from '../services/ventes.service';
 import { depensesService, Depense } from '../services/depenses.service';
@@ -60,6 +64,7 @@ export default function Dashboard() {
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [closedCycles, setClosedCycles] = useState<Cycle[]>([]);
   const [alertes, setAlertes] = useState<Alerte[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -131,7 +136,7 @@ export default function Dashboard() {
     : 0));
 
   const chartData = useMemo(() => {
-    return filteredClosedCycles.map((c) => ({
+    return filteredClosedCycles.slice(-10).map((c) => ({
       name: `C#${c.numero_cycle}`,
       marge: c.bilan_marge ?? 0,
       recettes: c.bilan_recettes ?? 0,
@@ -153,6 +158,26 @@ export default function Dashboard() {
       setAlertes((prev) => prev.filter((a) => a.id !== id));
     } catch {
       // silent
+    }
+  };
+
+  const handleExportCyclesCsv = async () => {
+    setExporting(true);
+    try {
+      const response = await exportService.exportCycles(period > 0 ? period : undefined);
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cycles-export.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Erreur lors de l\'export CSV');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -258,42 +283,42 @@ export default function Dashboard() {
             <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
               <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
                 <CardBody py={3} px={4}>
-                  <Text fontSize="xs" color="text.3">Effectif vivant</Text>
+                  <Text fontSize={{ base: "ms", md: "xs" }} color="text.3">Effectif vivant</Text>
                   <Text fontSize="2xl" fontWeight="bold" color="text.1">
                     {effectifVivant}
                   </Text>
-                  <Text fontSize="xs" color="text.3">
+                  <Text fontSize={{ base: "sm", md: "xs" }} color="text.3">
                     sur {currentCycle.effectif_initial} initial
                   </Text>
                 </CardBody>
               </Card>
               <Card bg="surface.1" borderColor={tauxMortalite > 5 ? 'danger.1' : 'border.1'} borderWidth="1px">
                 <CardBody py={3} px={4}>
-                  <Text fontSize="xs" color="text.3">Mortalité cumulée</Text>
+                  <Text fontSize={{ base: "ms", md: "xs" }} color="text.3">Mortalité cumulée</Text>
                   <HStack align="baseline" spacing={2}>
                     <Text fontSize="2xl" fontWeight="bold" color={tauxMortalite > 5 ? 'danger.1' : 'text.1'}>
                       {totalMortalite}
                     </Text>
                   </HStack>
-                  <Text fontSize="xs" color={tauxMortalite > 5 ? 'danger.1' : 'text.3'}>
+                  <Text fontSize={{ base: "sm", md: "xs" }} color={tauxMortalite > 5 ? 'danger.1' : 'text.3'}>
                     {tauxMortalite.toFixed(1)}%
                   </Text>
                 </CardBody>
               </Card>
               <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
                 <CardBody py={3} px={4}>
-                  <Text fontSize="xs" color="text.3">Trésorerie</Text>
+                  <Text fontSize={{ base: "ms", md: "xs" }} color="text.3">Trésorerie</Text>
                   <Text fontSize="2xl" fontWeight="bold" color={tresorerie >= 0 ? 'success.1' : 'danger.1'}>
                     {tresorerie >= 0 ? '+' : ''}{Math.round(tresorerie).toLocaleString('fr-FR')} KMF
                   </Text>
-                  <Text fontSize="xs" color="text.3">
-                    Ventes: {Math.round(totalVentesCycle).toLocaleString('fr-FR')} — Dépenses: {Math.round(totalDepensesCycle).toLocaleString('fr-FR')}
+                  <Text fontSize={{ base: "sm", md: "xs" }} color="text.3">
+                    Ventes: {Math.round(totalVentesCycle).toLocaleString('fr-FR')} | Dépenses: {Math.round(totalDepensesCycle).toLocaleString('fr-FR')}
                   </Text>
                 </CardBody>
               </Card>
               <Card bg="surface.1" borderColor={margeEstimee >= 0 ? 'border.1' : 'danger.1'} borderWidth="1px">
                 <CardBody py={3} px={4}>
-                  <Text fontSize="xs" color="text.3">Marge estimée</Text>
+                  <Text fontSize={{ base: "ms", md: "xs" }} color="text.3">Marge estimée</Text>
                   <Text fontSize="2xl" fontWeight="bold" color={margeEstimee >= 0 ? 'success.1' : 'danger.1'}>
                     {margeEstimee >= 0 ? '+' : ''}{Math.round(margeEstimee).toLocaleString('fr-FR')} KMF
                   </Text>
@@ -316,30 +341,64 @@ export default function Dashboard() {
             <Heading size="md" color="text.1">Comparatif des cycles clôturés</Heading>
             <TrendArrow value={margeTrend} />
           </HStack>
-          <Select
-            value={period}
-            onChange={(e) => setPeriod(Number(e.target.value))}
-            bg="surface.1"
-            borderColor="border.1"
-            w="auto"
-            fontSize="sm"
-            size="sm"
-            borderRadius="md"
-          >
-            <option value={3}>3 derniers mois</option>
-            <option value={6}>6 derniers mois</option>
-            <option value={12}>12 derniers mois</option>
-            <option value={0}>Tout afficher</option>
-          </Select>
+          <HStack spacing="2">
+            <Menu>
+              <MenuButton
+                as={Button}
+                w={{ base: "100%", md: "auto" }}
+                h={{ base: 10, md: 8 }}
+                size={{ base: "md", md: "sm" }}
+                bg="surface.1"
+                borderColor="border.1"
+                borderWidth="1px"
+                borderRadius="md"
+                rightIcon={<FiChevronDown />}
+                textAlign="left"
+                justifyContent="space-between"
+              >
+                {period === 3 ? '3 derniers mois' : period === 6 ? '6 derniers mois' : period === 12 ? '12 derniers mois' : 'Tout afficher'}
+              </MenuButton>
+              <MenuList bg="surface.1" borderColor="border.1">
+                <MenuItem onClick={() => setPeriod(3)} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                  3 derniers mois
+                </MenuItem>
+                <MenuItem onClick={() => setPeriod(6)} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                  6 derniers mois
+                </MenuItem>
+                <MenuItem onClick={() => setPeriod(12)} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                  12 derniers mois
+                </MenuItem>
+                <MenuItem onClick={() => setPeriod(0)} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>
+                  Tout afficher
+                </MenuItem>
+              </MenuList>
+            </Menu>
+            <Button
+              size="sm"
+              variant="outline"
+              borderColor="border.1"
+              color="text.2"
+              bg="surface.1"
+              leftIcon={<FiDownload />}
+              onClick={handleExportCyclesCsv}
+              isLoading={exporting}
+              loadingText="Export..."
+              fontSize="sm"
+              borderRadius="md"
+              flexShrink={0}
+            >
+              Exporter CSV
+            </Button>
+          </HStack>
         </HStack>
 
         {chartData.length > 0 && (
           <Card bg="surface.1" borderColor="border.1" borderWidth="1px" mb={4}>
             <CardBody py={4}>
               <Text fontSize="sm" fontWeight="medium" color="text.2" mb={3}>Évolution des marges</Text>
-              <Box h="200px">
+              <Box h="250px">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#888' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#888' }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
@@ -370,12 +429,12 @@ export default function Dashboard() {
             <Table size="sm" variant="simple">
               <Thead>
                 <Tr>
-                  <Th color="text.3">Cycle</Th>
+                  <Th color="text.3" minW={{ base: "100px", md: "auto" }}>Cycle</Th>
                   <Th color="text.3">Date réception</Th>
                   <Th color="text.3">Effectif initial</Th>
-                  <Th color="text.3">Coût total</Th>
-                  <Th color="text.3">Recettes</Th>
-                  <Th color="text.3">Marge</Th>
+                  <Th color="text.3" minW={{ base: "135px", md: "auto" }}>Coût total</Th>
+                  <Th color="text.3" minW={{ base: "135px", md: "auto" }}>Recettes</Th>
+                  <Th color="text.3" minW={{ base: "150px", md: "auto" }}>Marge</Th>
                   <Th color="text.3">Taux mortalité</Th>
                   <Th color="text.3">Détails</Th>
                 </Tr>

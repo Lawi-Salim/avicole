@@ -37,4 +37,11 @@ export class CreateVenteDto {
   @IsNotEmpty()
   @IsEnum(['paye', 'partiel', 'impaye'])
   statut_paiement!: 'paye' | 'partiel' | 'impaye';
+
+  @IsOptional()
+  @IsEnum(['poulet_vif', 'poulet_abattu', 'poulet_entier', 'poulet_fermier', 'poulet_morceaux', 'poulet_cuisse', 'poulet_ailes'])
+  categorie_produit?: 'poulet_vif' | 'poulet_abattu' | 'poulet_entier' | 'poulet_fermier' | 'poulet_morceaux' | 'poulet_cuisse' | 'poulet_ailes';
+
+  @IsOptional()
+  remise?: number;
 }

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Cycle AVICOLE</title>
+    <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background-color: #8b8585;
+        color: #111111;
+        font-family: 'Geist', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 40px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .report-container {
+        background-color: #ffffff;
+        width: 794px;
+        padding: 50px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* ===== EN-TÊTE ===== */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .company-logo-section {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .company-name { font-size: 20px; font-weight: bold; color: #111111; }
+    .company-subtitle { font-size: 12px; color: #666666; margin: 2px 0 0 0; }
+
+    .report-title-section { text-align: right; }
+    .report-title { font-size: 22px; font-weight: bold; color: #111111; }
+    .report-number { font-size: 14px; color: #444444; margin: 5px 0; }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .status-cloture {
+        background-color: rgba(76, 175, 80, 0.15);
+        border: 1px solid #2e8733;
+        color: #2e8733;
+    }
+
+    /* ===== BARRE MÉTADONNÉES ===== */
+    .metadata-bar {
+        background-color: #f7f7f7;
+        border-radius: 8px;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 30px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .metadata-item {
+        flex: 1;
+    }
+
+    .metadata-item label {
+        display: block;
+        font-size: 11px;
+        color: #777777;
+        margin-bottom: 5px;
+    }
+
+    .metadata-item span {
+        font-size: 14px;
+        font-weight: bold;
+        color: #111111;
+    }
+
+    /* ===== SECTIONS ===== */
+    .section {
+        margin-bottom: 28px;
+        page-break-inside: avoid;
+    }
+
+    .section-title {
+        font-size: 15px;
+        font-weight: bold;
+        color: #111111;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #e0e0e0;
+        page-break-after: avoid;
+    }
+
+    /* ===== GRILLE INFOS CYCLE ===== */
+    .info-grid {
+        display: flex;
+        gap: 20px;
+    }
+
+    .info-block {
+        flex: 1;
+    }
+
+    .info-block p {
+        margin: 3px 0;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .info-block p strong {
+        color: #555;
+        font-weight: 600;
+    }
+
+    .info-block .value {
+        color: #111;
+        font-weight: bold;
+    }
+
+    /* ===== TABLEAUX ===== */
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+        page-break-inside: avoid;
+    }
+
+    .report-table th {
+        text-align: left;
+        font-size: 12px;
+        color: #666666;
+        padding: 8px 10px;
+        border-bottom: 2px solid #e0e0e0;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        background-color: #fafafa;
+    }
+
+    .report-table td {
+        padding: 8px 10px;
+        font-size: 13px;
+        color: #111111;
+        border-bottom: 1px solid #ebebeb;
+    }
+
+    .report-table .text-right { text-align: right; }
+    .report-table .text-center { text-align: center; }
+
+    .report-table .row-total td {
+        font-weight: bold;
+        border-top: 2px solid #e0e0e0;
+        border-bottom: none;
+        padding-top: 10px;
+    }
+
+    .no-data {
+        text-align: center;
+        color: #999;
+        font-style: italic;
+        padding: 15px 0;
+        font-size: 13px;
+    }
+
+    /* ===== MORTALITÉ — BARRE TAUX ===== */
+    .mortality-bar-container {
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .mortality-bar-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+
+    .mortality-bar-track {
+        width: 100%;
+        height: 14px;
+        background-color: #f0f0f0;
+        border-radius: 7px;
+        overflow: hidden;
+    }
+
+    .mortality-bar-fill {
+        height: 100%;
+        border-radius: 7px;
+    }
+
+    /* ===== BILAN FINANCIER ===== */
+    .bilan-grid {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .bilan-card {
+        flex: 1;
+        background-color: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        page-break-inside: avoid;
+    }
+
+    .bilan-card .bilan-label {
+        font-size: 11px;
+        color: #777;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .bilan-card .bilan-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #111;
+    }
+
+    .bilan-card .bilan-unit {
+        font-size: 11px;
+        color: #999;
+    }
+
+    .bilan-positive { border-left: 4px solid #38A169; }
+    .bilan-negative { border-left: 4px solid #E53E3E; }
+    .bilan-neutral { border-left: 4px solid #3182CE; }
+
+    /* ===== GRAPHIQUE BARRES ===== */
+    .bar-chart {
+        margin: 15px 0;
+        page-break-inside: avoid;
+    }
+
+    .bar-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .bar-label {
+        width: 120px;
+        font-size: 12px;
+        color: #555;
+        text-align: right;
+        padding-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .bar-track {
+        flex: 1;
+        height: 20px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+
+    .bar-fill-cost { background-color: #E53E3E; }
+    .bar-fill-revenue { background-color: #38A169; }
+    .bar-fill-margin { background-color: #3182CE; }
+
+    .bar-value {
+        width: 100px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #111;
+        padding-left: 10px;
+        flex-shrink: 0;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #666666;
+        border-top: 1px solid #e0e0e0;
+        padding-top: 15px;
+        margin-top: 30px;
+        page-break-inside: avoid;
+    }
+
+    /* ===== IMPRESSION NAVIGATEUR ===== */
+    @media print {
+        body { background-color: #ffffff; margin: 0; padding: 0; display: block; }
+        .report-container { width: 100%; padding: 0; box-shadow: none; }
+        .section { page-break-inside: avoid; }
+        .section-title { page-break-after: avoid; }
+        .report-table { page-break-inside: avoid; }
+        .report-table tr { page-break-inside: avoid; }
+        .bilan-card { page-break-inside: avoid; }
+        .bar-chart { page-break-inside: avoid; }
+        .footer { page-break-inside: avoid; }
+    }
+
+    @page {
+        size: A4;
+        margin: 20mm;
+    }
+    </style>
+</head>
+<body>
+
+    <div class="report-container">
+
+        <!-- EN-TÊTE -->
+        <div class="header">
+            <div class="company-logo-section">
+                <div>
+                    <h1 class="company-name">AVIPOUL</h1>
+                    <p class="company-subtitle">SHABABI &bull; HAZI</p>
+                    <p class="company-subtitle">Moroni, Union des Comores</p>
+                </div>
+            </div>
+            <div class="report-title-section">
+                <h2 class="report-title">RAPPORT DE CYCLE</h2>
+                <p class="report-number">N&deg; Cycle #{{ cycle.numero_cycle }}</p>
+                <span class="status-badge status-cloture">Cl&ocirc;tur&eacute;</span>
+            </div>
+        </div>
+
+        <!-- BARRE MÉTADONNÉES -->
+        <div class="metadata-bar">
+            <div class="metadata-item">
+                <label>Date de r&eacute;ception</label>
+                <span>{{ cycle.date_reception }}</span>
+            </div>
+            <div class="metadata-item">
+                <label>Date de cl&ocirc;ture</label>
+                <span>{{ cycle.date_cloture or '—' }}</span>
+            </div>
+            <div class="metadata-item">
+                <label>Effectif initial</label>
+                <span>{{ cycle.effectif_initial }}</span>
+            </div>
+            <div class="metadata-item">
+                <label>Phase finale</label>
+                <span>{{ cycle.phase_courante | capitalize }}</span>
+            </div>
+        </div>
+
+        <!-- SECTION 1: INFORMATIONS DU CYCLE -->
+        <div class="section">
+            <h3 class="section-title">Informations du cycle</h3>
+            <div class="info-grid">
+                <div class="info-block">
+                    <p><strong>Num&eacute;ro de cycle :</strong> <span class="value">#{{ cycle.numero_cycle }}</span></p>
+                    <p><strong>Date de r&eacute;ception :</strong> <span class="value">{{ cycle.date_reception }}</span></p>
+                    <p><strong>Date de cl&ocirc;ture :</strong> <span class="value">{{ cycle.date_cloture or '—' }}</span></p>
+                    <p><strong>Phase finale :</strong> <span class="value">{{ cycle.phase_courante | capitalize }}</span></p>
+                </div>
+                <div class="info-block">
+                    <p><strong>Effectif initial :</strong> <span class="value">{{ cycle.effectif_initial }} poulets</span></p>
+                    <p><strong>Co&ucirc;t d'achat poussins :</strong> <span class="value">{{ "{:,.0f}".format(cycle.cout_achat_poussins) }} KMF / poulet</span></p>
+                    <p><strong>Co&ucirc;t total poussins :</strong> <span class="value">{{ "{:,.0f}".format(cycle.cout_achat_poussins * cycle.effectif_initial) }} KMF</span></p>
+                    <p><strong>Mortalit&eacute; cumul&eacute;e :</strong> <span class="value">{{ cycle.bilan_mortalite_cumulee or mortalites|map(attribute='nombre')|sum or 0 }} poulets</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: SUIVI DE MORTALITÉ -->
+        <div class="section">
+            <h3 class="section-title">Suivi de mortalit&eacute;</h3>
+
+            {% set total_mortalite = cycle.bilan_mortalite_cumulee or mortalites|map(attribute='nombre')|sum or 0 %}
+            {% set taux_mortalite = ((total_mortalite / cycle.effectif_initial) * 100) if cycle.effectif_initial > 0 else 0 %}
+            {% if taux_mortalite < 5 %}
+                {% set bar_color = '#38A169' %}
+            {% elif taux_mortalite < 10 %}
+                {% set bar_color = '#D69E2E' %}
+            {% else %}
+                {% set bar_color = '#E53E3E' %}
+            {% endif %}
+
+            <div class="mortality-bar-container">
+                <div class="mortality-bar-label">Taux de mortalit&eacute; : {{ "%.1f"|format(taux_mortalite) }}%</div>
+                <div class="mortality-bar-track">
+                    <div class="mortality-bar-fill" style="width: {{ [taux_mortalite, 100]|min }}%; background-color: {{ bar_color }};"></div>
+                </div>
+            </div>
+
+            {% if mortalites %}
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-right">Nombre</th>
+                        <th>Cause</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in mortalites %}
+                    <tr>
+                        <td>{{ m.date }}</td>
+                        <td class="text-right">{{ m.nombre }}</td>
+                        <td>{{ m.cause or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="row-total">
+                        <td>Total</td>
+                        <td class="text-right">{{ total_mortalite }}</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-data">Aucun enregistrement de mortalit&eacute;</p>
+            {% endif %}
+        </div>
+
+        <!-- SECTION 3: DÉPENSES PAR CATÉGORIE -->
+        <div class="section">
+            <h3 class="section-title">D&eacute;penses par cat&eacute;gorie</h3>
+
+            {% set total_depenses = depenses | map(attribute='montant') | sum or 0 %}
+
+            {% if depenses %}
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Cat&eacute;gorie</th>
+                        <th>Description</th>
+                        <th class="text-right">Montant (KMF)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in depenses %}
+                    <tr>
+                        <td>{{ d.date }}</td>
+                        <td>{{ d.categorie | capitalize }}</td>
+                        <td>{{ d.description or '—' }}</td>
+                        <td class="text-right">{{ "{:,.0f}".format(d.montant) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="row-total">
+                        <td colspan="3">Total d&eacute;penses</td>
+                        <td class="text-right">{{ "{:,.0f}".format(total_depenses) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            {% if categories %}
+            <div class="bar-chart">
+                {% for cat, montant in categories.items() | sort(attribute='1', reverse=True) %}
+                {% set pct = (montant / total_depenses * 100) if total_depenses > 0 else 0 %}
+                <div class="bar-row">
+                    <div class="bar-label">{{ cat | capitalize }}</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-fill-cost" style="width: {{ pct }}%;"></div>
+                    </div>
+                    <div class="bar-value">{{ "{:,.0f}".format(montant) }} KMF</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <p class="no-data">Aucune d&eacute;pense enregistr&eacute;e</p>
+            {% endif %}
+        </div>
+
+        <!-- SECTION 4: VENTES -->
+        <div class="section">
+            <h3 class="section-title">Ventes</h3>
+
+            {% if ventes %}
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th class="text-right">Quantit&eacute;</th>
+                        <th class="text-right">PU (KMF)</th>
+                        <th class="text-right">Total (KMF)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in ventes %}
+                    <tr>
+                        <td>{{ v.date }}</td>
+                        <td>{{ v.client.nom if v.client else '—' }}</td>
+                        <td class="text-right">{{ v.quantite }}</td>
+                        <td class="text-right">{{ "{:,.0f}".format(v.prix_unitaire) }}</td>
+                        <td class="text-right">{{ "{:,.0f}".format(v.quantite * v.prix_unitaire) }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="row-total">
+                        <td colspan="2">Total ventes</td>
+                        <td class="text-right">{{ total_ventes_quantite }}</td>
+                        <td></td>
+                        <td class="text-right">{{ "{:,.0f}".format(total_ventes_montant) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-data">Aucune vente enregistr&eacute;e</p>
+            {% endif %}
+        </div>
+
+        <!-- SECTION 5: BILAN FINANCIER -->
+        <div class="section">
+            <h3 class="section-title">Bilan financier</h3>
+
+            {% set bilan_cout = bilan.cout_total or 0 %}
+            {% set bilan_recettes = bilan.recettes or 0 %}
+            {% set bilan_marge = bilan.marge or 0 %}
+            {% set max_bar = [bilan_cout, bilan_recettes] | max if [bilan_cout, bilan_recettes] | max > 0 else 1 %}
+
+            <div class="bilan-grid">
+                <div class="bilan-card bilan-negative">
+                    <div class="bilan-label">Co&ucirc;t total</div>
+                    <div class="bilan-value">{{ "{:,.0f}".format(bilan_cout) }}</div>
+                    <div class="bilan-unit">KMF</div>
+                </div>
+                <div class="bilan-card bilan-positive">
+                    <div class="bilan-label">Recettes totales</div>
+                    <div class="bilan-value">{{ "{:,.0f}".format(bilan_recettes) }}</div>
+                    <div class="bilan-unit">KMF</div>
+                </div>
+                <div class="bilan-card {{ 'bilan-positive' if bilan_marge >= 0 else 'bilan-negative' }}">
+                    <div class="bilan-label">Marge</div>
+                    <div class="bilan-value">{{ "{:,.0f}".format(bilan_marge) }}</div>
+                    <div class="bilan-unit">KMF</div>
+                </div>
+            </div>
+
+            <div class="bilan-grid">
+                <div class="bilan-card bilan-neutral">
+                    <div class="bilan-label">Co&ucirc;t / Poulet</div>
+                    <div class="bilan-value">{{ "{:,.0f}".format(bilan.cout_revient_par_poulet or 0) }}</div>
+                    <div class="bilan-unit">KMF</div>
+                </div>
+                <div class="bilan-card bilan-neutral">
+                    <div class="bilan-label">Effectif vivant</div>
+                    <div class="bilan-value">{{ bilan.effectif_vivant or (cycle.effectif_initial - total_mortalite) }}</div>
+                    <div class="bilan-unit">poulets</div>
+                </div>
+                <div class="bilan-card bilan-neutral">
+                    <div class="bilan-label">Seuil rentabilit&eacute;</div>
+                    <div class="bilan-value">{{ bilan.seuil_rentabilite or 0 }}</div>
+                    <div class="bilan-unit">poulets</div>
+                </div>
+            </div>
+
+            <!-- Graphique barres : Coût vs Recettes -->
+            <div class="bar-chart">
+                <div class="bar-row">
+                    <div class="bar-label">Co&ucirc;ts</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-fill-cost" style="width: {{ (bilan_cout / max_bar * 100) }}%;"></div>
+                    </div>
+                    <div class="bar-value">{{ "{:,.0f}".format(bilan_cout) }} KMF</div>
+                </div>
+                <div class="bar-row">
+                    <div class="bar-label">Recettes</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-fill-revenue" style="width: {{ (bilan_recettes / max_bar * 100) }}%;"></div>
+                    </div>
+                    <div class="bar-value">{{ "{:,.0f}".format(bilan_recettes) }} KMF</div>
+                </div>
+                {% if bilan_marge > 0 %}
+                <div class="bar-row">
+                    <div class="bar-label">Marge</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-fill-margin" style="width: {{ (bilan_marge / max_bar * 100) }}%;"></div>
+                    </div>
+                    <div class="bar-value">{{ "{:,.0f}".format(bilan_marge) }} KMF</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div>
+                <span>AVIPOUL &mdash; SHABABI &bull; HAZI, Moroni, Union des Comores</span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-weight: bold;">Document g&eacute;n&eacute;r&eacute; le {{ date_generation }}</span>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

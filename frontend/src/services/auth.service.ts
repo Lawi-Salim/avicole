@@ -3,9 +3,14 @@ import api from './api';
 export interface User {
   id: string;
   nom: string;
+  prenom?: string;
   email: string;
+  telephone?: string;
+  adresse?: string;
   role: string;
   photo?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface LoginPayload {
@@ -33,4 +38,7 @@ export const authService = {
 
   getProfile: () =>
     api.get<User>('/auth/profil').then((r) => r.data),
+
+  changePassword: (data: { mot_de_passe_actuel: string; nouveau_mot_de_passe: string }) =>
+    api.patch<{ message: string }>('/auth/profil/mot-de-passe', data).then((r) => r.data),
 };

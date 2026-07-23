@@ -6,7 +6,10 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -31,7 +34,7 @@ import {
   ModalCloseButton,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2, FiAlertTriangle } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiAlertTriangle, FiChevronDown } from 'react-icons/fi';
 import { produitsService, ProduitVeterinaire, CreateProduitPayload } from '../services/produits.service';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -271,12 +274,17 @@ export default function ProduitsVeterinaires() {
               <SimpleGrid columns={2} w="100%" spacing={4}>
                 <Box>
                   <Text mb={1} fontSize="sm" color="text.2">Type</Text>
-                  <Select value={form.type_produit} onChange={(e) => setForm({ ...form, type_produit: e.target.value })} bg="surface.2" borderColor="border.1" size="sm">
-                    <option value="vaccin">Vaccin</option>
-                    <option value="antibiotique">Antibiotique</option>
-                    <option value="vitamine">Vitamine</option>
-                    <option value="autre">Autre</option>
-                  </Select>
+                  <Menu>
+                    <MenuButton as={Button} w="100%" h={{ base: 10, md: 8 }} size={{ base: "md", md: "sm" }} bg="surface.2" borderColor="border.1" borderWidth="1px" borderRadius="md" rightIcon={<FiChevronDown />} textAlign="left" justifyContent="space-between">
+                      {form.type_produit === 'vaccin' ? 'Vaccin' : form.type_produit === 'antibiotique' ? 'Antibiotique' : form.type_produit === 'vitamine' ? 'Vitamine' : 'Autre'}
+                    </MenuButton>
+                    <MenuList bg="surface.1" borderColor="border.1">
+                      <MenuItem onClick={() => setForm({ ...form, type_produit: 'vaccin' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>Vaccin</MenuItem>
+                      <MenuItem onClick={() => setForm({ ...form, type_produit: 'antibiotique' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>Antibiotique</MenuItem>
+                      <MenuItem onClick={() => setForm({ ...form, type_produit: 'vitamine' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>Vitamine</MenuItem>
+                      <MenuItem onClick={() => setForm({ ...form, type_produit: 'autre' })} bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }}>Autre</MenuItem>
+                    </MenuList>
+                  </Menu>
                 </Box>
                 <Box>
                   <Text mb={1} fontSize="sm" color="text.2">Unité</Text>

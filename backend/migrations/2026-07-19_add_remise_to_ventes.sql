@@ -1,0 +1,2 @@
+ALTER TABLE ventes
+ADD COLUMN IF NOT EXISTS remise numeric(10,2) DEFAULT 0;

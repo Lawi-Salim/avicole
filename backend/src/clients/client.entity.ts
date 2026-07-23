@@ -31,6 +31,9 @@ export class Client extends Model {
   declare contact: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
+  declare email: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
   declare adresse: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })

@@ -18,6 +18,9 @@ import ProduitsVeterinaires from './pages/ProduitsVeterinaires';
 import Sante from './pages/Sante';
 import Bilans from './pages/Bilans';
 import Utilisateurs from './pages/Utilisateurs';
+import RapportPreview from './pages/RapportPreview';
+import FacturePreview from './pages/FacturePreview';
+import FactureGroupeePreview from './pages/FactureGroupeePreview';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute() {
@@ -35,6 +38,21 @@ function ProtectedRoute() {
   return <DashboardLayout />;
 }
 
+function AdminRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Center h="100vh">
+        <Spinner size="xl" color="accent.1" />
+      </Center>
+    );
+  }
+
+  if (!user || user.role !== 'admin') return <Navigate to="/cycles" replace />;
+  return <DashboardLayout />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -45,7 +63,7 @@ export default function App() {
         <Route path="/cycles/:id" element={<CycleDetail />} />
         <Route path="/parametrage" element={<Parametrage />} />
         <Route path="/depenses" element={<Depenses />} />
-        <Route path="/ventes" element={<Ventes />} />
+        <Route path="/ventes/:cycleId?" element={<Ventes />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/dashboard" element={<Dashboard />} />
@@ -54,6 +72,11 @@ export default function App() {
         <Route path="/produits-veterinaires" element={<ProduitsVeterinaires />} />
         <Route path="/sante" element={<Sante />} />
         <Route path="/bilans" element={<Bilans />} />
+        <Route path="/cycles/:id/rapport" element={<RapportPreview />} />
+        <Route path="/ventes/:id/facture" element={<FacturePreview />} />
+        <Route path="/clients/:clientId/cycles/:cycleId/facture" element={<FactureGroupeePreview />} />
+      </Route>
+      <Route element={<AdminRoute />}>
         <Route path="/utilisateurs" element={<Utilisateurs />} />
       </Route>
       <Route path="*" element={<NotFound />} />

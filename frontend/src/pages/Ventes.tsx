@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -7,7 +7,10 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -33,13 +36,15 @@ import {
   InputGroup,
   InputLeftElement,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2, FiSearch, FiExternalLink, FiCheckCircle } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiSearch, FiExternalLink, FiCheckCircle, FiDownload, FiEye, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
-import { ventesService, Vente, CreateVentePayload } from '../services/ventes.service';
+import { ventesService, Vente, CreateVentePayload, CATEGORIE_PRODUIT_LABELS, CategorieProduit } from '../services/ventes.service';
 import { santeService, Mortalite } from '../services/sante.service';
 import { clientsService, Client } from '../services/clients.service';
+import { exportService } from '../services/export.service';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import { responsiveText } from '../theme/designTokens';
 
 const MODE_PAIEMENT_LABELS: Record<string, string> = {
   especes: 'Espèces',
@@ -65,6 +70,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function Ventes() {
   const navigate = useNavigate();
+  const { cycleId: urlCycleId } = useParams<{ cycleId?: string }>();
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedCycle, setSelectedCycle] = useState('');
@@ -78,6 +84,8 @@ export default function Ventes() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const [searchClient, setSearchClient] = useState('');
   const [filterStatut, setFilterStatut] = useState('tous');
@@ -91,6 +99,7 @@ export default function Ventes() {
     date: new Date().toISOString().slice(0, 10),
     mode_paiement: 'especes',
     statut_paiement: 'paye',
+    categorie_produit: 'poulet_vif',
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,10 +113,17 @@ export default function Ventes() {
         setCycles(c);
         setClients(cl);
         if (c.length > 0 && !selectedCycle) {
-          const first = c[0]!;
-          setSelectedCycle(first.id);
-          setSelectedCycleData(first);
-          setForm((prev) => ({ ...prev, cycle_id: first.id }));
+          const sorted = [...c].sort((a, b) => Number(b.numero_cycle) - Number(a.numero_cycle));
+          let target: Cycle;
+          if (urlCycleId) {
+            target = c.find((cy) => cy.id === urlCycleId) || sorted[0]!;
+          } else {
+            const enCours = sorted.filter((cy) => cy.statut === 'en_cours');
+            target = enCours.length > 0 ? enCours[0]! : sorted[0]!;
+          }
+          setSelectedCycle(target.id);
+          setSelectedCycleData(target);
+          setForm((prev) => ({ ...prev, cycle_id: target.id }));
         }
       })
       .catch(() => setError('Erreur lors du chargement des données'))
@@ -171,6 +187,7 @@ export default function Ventes() {
         date: new Date().toISOString().slice(0, 10),
         mode_paiement: 'especes',
         statut_paiement: 'paye',
+        categorie_produit: 'poulet_vif',
       });
       await loadVentes();
     } catch (err: unknown) {
@@ -191,6 +208,7 @@ export default function Ventes() {
       date: v.date,
       mode_paiement: v.mode_paiement,
       statut_paiement: v.statut_paiement,
+      categorie_produit: v.categorie_produit || 'poulet_vif',
     });
   };
 
@@ -204,6 +222,7 @@ export default function Ventes() {
       date: new Date().toISOString().slice(0, 10),
       mode_paiement: 'especes',
       statut_paiement: 'paye',
+      categorie_produit: 'poulet_vif',
     });
   };
 
@@ -236,6 +255,49 @@ export default function Ventes() {
     }
   };
 
+  const handleExportFacture = async (venteId: string) => {
+    setPdfLoadingId(venteId);
+    try {
+      const response = await ventesService.exportFacturePdf(venteId);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `facture-${venteId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Erreur lors de la génération de la facture. Vérifiez que le service PDF est actif.');
+    } finally {
+      setPdfLoadingId(null);
+    }
+  };
+
+  const handleExportVentesCsv = async () => {
+    setExporting(true);
+    try {
+      const response = await exportService.exportVentes(
+        selectedCycle || undefined,
+        filterStatut !== 'tous' ? filterStatut : undefined,
+      );
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'ventes-export.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Erreur lors de l\'export CSV');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const filteredVentes = useMemo(() => {
     let result = [...ventes];
     if (searchClient) {
@@ -260,7 +322,7 @@ export default function Ventes() {
 
   const totalVentesFiltered = filteredVentes
     .filter((v) => v.statut_paiement !== 'impaye')
-    .reduce((sum, v) => sum + Number(v.quantite) * Number(v.prix_unitaire), 0);
+    .reduce((sum, v) => sum + Number(v.quantite) * Number(v.prix_unitaire) - Number(v.remise || 0), 0);
 
   const totalQuantiteFiltered = filteredVentes
     .filter((v) => v.statut_paiement !== 'impaye')
@@ -286,7 +348,24 @@ export default function Ventes() {
 
   return (
     <VStack spacing={6} align="stretch">
-      <Heading size="lg" color="text.1">Ventes</Heading>
+      <HStack justify="space-between" align="center">
+        <Heading size={{ base: "md", md: "lg" }} color="text.1">Ventes</Heading>
+        <Button
+          size={{ base: "md", md: "sm" }}
+          variant="outline"
+          borderColor="border.1"
+          color="text.2"
+          bg="surface.1"
+          leftIcon={<FiDownload />}
+          onClick={handleExportVentesCsv}
+          isLoading={exporting}
+          loadingText="Export..."
+          fontSize={responsiveText.sm}
+          borderRadius="md"
+        >
+          Exporter CSV
+        </Button>
+      </HStack>
 
       {error && (
         <Alert bg="danger.1" color="white" borderRadius="md" size="sm">
@@ -302,30 +381,49 @@ export default function Ventes() {
       )}
 
       <Box>
-        <Text mb={1} fontSize="sm" color="text.2">Sélectionner un cycle</Text>
-        <Select
-          value={selectedCycle}
-          onChange={(e) => {
-            setSelectedCycle(e.target.value);
-            const cycle = cycles.find(c => c.id === e.target.value);
-            setSelectedCycleData(cycle || null);
-            setForm((prev) => ({ ...prev, cycle_id: e.target.value }));
-            setEditingId(null);
-            setSearchClient('');
-            setFilterStatut('tous');
-          }}
-          bg="surface.1"
-          borderColor="border.1"
-          maxW="400px"
-          fontSize="sm"
-          h={8}
-        >
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cycle #{c.numero_cycle} - {new Date(c.date_reception).toLocaleDateString('fr-FR')}
-            </option>
-          ))}
-        </Select>
+        <Text mb={1} fontSize={responsiveText.md} color="text.2">Sélectionner un cycle</Text>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w={{ base: "100%", md: "400px" }}
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+            fontSize={responsiveText.sm}
+          >
+            {selectedCycle
+              ? `Cycle #${cycles.find(c => c.id === selectedCycle)?.numero_cycle} - ${new Date(cycles.find(c => c.id === selectedCycle)?.date_reception || '').toLocaleDateString('fr-FR')}`
+              : 'Sélectionner un cycle'}
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1">
+            {cycles.map((c) => (
+              <MenuItem
+                key={c.id}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+                onClick={() => {
+                  setSelectedCycle(c.id);
+                  navigate(`/ventes/${c.id}`, { replace: true });
+                  setSelectedCycleData(c);
+                  setForm((prev) => ({ ...prev, cycle_id: c.id }));
+                  setEditingId(null);
+                  setSearchClient('');
+                  setFilterStatut('tous');
+                }}
+              >
+                Cycle #{c.numero_cycle} - {new Date(c.date_reception).toLocaleDateString('fr-FR')}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
       </Box>
 
       {selectedCycleData?.statut === 'en_cours' ? (
@@ -335,7 +433,7 @@ export default function Ventes() {
               {editingId ? 'Modifier la vente' : 'Ajouter une vente'}
             </Heading>
             <Box as="form" onSubmit={handleSubmit}>
-              <SimpleGrid columns={{ base: 2, md: 7 }} spacing={3}>
+              <SimpleGrid columns={{ base: 1, sm: 2, md: 7 }} spacing={3}>
                 <Input
                   type="number"
                   placeholder="Quantité"
@@ -344,7 +442,7 @@ export default function Ventes() {
                   bg="surface.2"
                   borderColor="border.1"
                   borderRadius="md"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   min={1}
                   required
                 />
@@ -356,7 +454,7 @@ export default function Ventes() {
                   bg="surface.2"
                   borderColor="border.1"
                   borderRadius="md"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   min={0}
                   required
                 />
@@ -367,83 +465,180 @@ export default function Ventes() {
                   bg="surface.2"
                   borderColor="border.1"
                   borderRadius="md"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   required
                 />
-                <Select
-                  value={form.mode_paiement}
-                  onChange={(e) => setForm({ ...form, mode_paiement: e.target.value as CreateVentePayload['mode_paiement'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  size="sm"
-                  borderRadius="md"
-                >
-                  <option value="especes">Espèces</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="cheque">Chèque</option>
-                  <option value="virement">Virement</option>
-                  <option value="credit">Crédit</option>
-                </Select>
-                <Select
-                  value={form.statut_paiement}
-                  onChange={(e) => setForm({ ...form, statut_paiement: e.target.value as CreateVentePayload['statut_paiement'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  size="sm"
-                  borderRadius="md"
-                >
-                  <option value="paye">Payé</option>
-                  <option value="partiel">Partiel</option>
-                  <option value="impaye">Impayé</option>
-                </Select>
-                <Select
-                  value={form.client_id || ''}
-                  onChange={(e) => setForm({ ...form, client_id: e.target.value || undefined })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  size="sm"
-                  borderRadius="md"
-                  required
-                >
-                  <option value="">Choisir un client</option>
-                  {clients.map((cl) => (
-                    <option key={cl.id} value={cl.id}>{cl.nom}</option>
-                  ))}
-                </Select>
-                <HStack>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    bg="accent.1"
-                    color="gray.900"
-                    _hover={{ bg: 'accent.2' }}
-                    leftIcon={editingId ? <FiEdit2 /> : <FiPlus />}
-                    isLoading={submitting}
-                    fontWeight="bold"
-                    flex={1}
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
                   >
-                    {editingId ? 'Modifier' : 'Ajouter'}
-                  </Button>
-                  {editingId && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      color="text.3"
-                      onClick={handleCancelEdit}
+                    {MODE_PAIEMENT_LABELS[form.mode_paiement] || form.mode_paiement}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    {Object.entries(MODE_PAIEMENT_LABELS).map(([value, label]) => (
+                      <MenuItem
+                        key={value}
+                        bg="surface.1"
+                        _hover={{ bg: 'surface.2' }}
+                        color="text.1"
+                        fontSize={{ base: "md", md: "sm" }}
+                        onClick={() => setForm({ ...form, mode_paiement: value as CreateVentePayload['mode_paiement'] })}
+                      >
+                        {label}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {STATUT_PAIEMENT_LABELS[form.statut_paiement] || form.statut_paiement}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    {Object.entries(STATUT_PAIEMENT_LABELS).map(([value, label]) => (
+                      <MenuItem
+                        key={value}
+                        bg="surface.1"
+                        _hover={{ bg: 'surface.2' }}
+                        color="text.1"
+                        fontSize={{ base: "md", md: "sm" }}
+                        onClick={() => setForm({ ...form, statut_paiement: value as CreateVentePayload['statut_paiement'] })}
+                      >
+                        {label}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {form.client_id ? clients.find(cl => cl.id === form.client_id)?.nom || 'Client inconnu' : 'Choisir un client'}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    <MenuItem
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                      onClick={() => setForm({ ...form, client_id: undefined })}
                     >
-                      Annuler
-                    </Button>
-                  )}
-                </HStack>
+                      Choisir un client
+                    </MenuItem>
+                    {clients.map((cl) => (
+                      <MenuItem
+                        key={cl.id}
+                        bg="surface.1"
+                        _hover={{ bg: 'surface.2' }}
+                        color="text.1"
+                        fontSize={{ base: "md", md: "sm" }}
+                        onClick={() => setForm({ ...form, client_id: cl.id })}
+                      >
+                        {cl.nom}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {CATEGORIE_PRODUIT_LABELS[form.categorie_produit] || form.categorie_produit}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    {Object.entries(CATEGORIE_PRODUIT_LABELS).map(([value, label]) => (
+                      <MenuItem
+                        key={value}
+                        bg="surface.1"
+                        _hover={{ bg: 'surface.2' }}
+                        color="text.1"
+                        fontSize={{ base: "md", md: "sm" }}
+                        onClick={() => setForm({ ...form, categorie_produit: value as CategorieProduit })}
+                      >
+                        {label}
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Menu>
               </SimpleGrid>
+              <HStack justifyContent="space-between">
+                <>
+                  {selectedCycle && (
+                    <Text fontSize="xs" color="text.3" mt={2}>
+                      {totalImpayeCycle > 0
+                        ? `Disponible : ${resteDisponible} poulets, ${totalImpayeCycle} impayés sur ${effectifVivant} vivants`
+                        : `Disponible : ${resteDisponible} poulets sur ${effectifVivant} vivants`}
+                    </Text>
+                  )}
+                </>
+
+                <HStack justifyContent="flex-end" mt={3}>
+                <Button
+                  type="submit"
+                  size="sm"
+                  bg="accent.1"
+                  color="gray.900"
+                  _hover={{ bg: 'accent.2' }}
+                  leftIcon={editingId ? <FiEdit2 /> : <FiPlus />}
+                  isLoading={submitting}
+                  fontWeight="bold"
+                >
+                  {editingId ? 'Modifier' : 'Ajouter'}
+                </Button>
+                {editingId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    color="text.3"
+                    onClick={handleCancelEdit}
+                  >
+                    Annuler
+                  </Button>
+                )}
+              </HStack>
+              </HStack>
             </Box>
-            {selectedCycle && (
-              <Text fontSize="xs" color="text.3" mt={2}>
-                {totalImpayeCycle > 0
-                  ? `Disponible : ${resteDisponible} poulets, ${totalImpayeCycle} impayés sur ${effectifVivant} vivants`
-                  : `Disponible : ${resteDisponible} poulets sur ${effectifVivant} vivants`}
-              </Text>
-            )}
           </CardBody>
         </Card>
       ) : null}
@@ -463,25 +658,51 @@ export default function Ventes() {
             fontSize="sm"
           />
         </InputGroup>
-        <Select
-          value={filterStatut}
-          onChange={(e) => setFilterStatut(e.target.value)}
-          bg="surface.1"
-          borderColor="border.1"
-          w="auto"
-          fontSize="sm"
-          size="sm"
-          borderRadius="md"
-        >
-          <option value="tous">Tous les statuts</option>
-          <option value="paye">Payé</option>
-          <option value="partiel">Partiel</option>
-          <option value="impaye">Impayé</option>
-        </Select>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w="auto"
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+            fontSize="sm"
+          >
+            {STATUT_PAIEMENT_LABELS[filterStatut] || 'Tous les statuts'}
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1">
+            <MenuItem
+              bg="surface.1"
+              _hover={{ bg: 'surface.2' }}
+              color="text.1"
+              fontSize={{ base: "md", md: "sm" }}
+              onClick={() => setFilterStatut('tous')}
+            >
+              Tous les statuts
+            </MenuItem>
+            {Object.entries(STATUT_PAIEMENT_LABELS).map(([value, label]) => (
+              <MenuItem
+                key={value}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+                onClick={() => setFilterStatut(value)}
+              >
+                {label}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
       </HStack>
 
       {filteredVentes.length === 0 ? (
-        <Text color="text.3" textAlign="center" py={6}>
+        <Text color="text.3" fontSize="sm" textAlign="center" py={6}>
           {ventes.length === 0 ? 'Aucune vente enregistrée.' : 'Aucune vente ne correspond aux filtres.'}
         </Text>
       ) : (
@@ -491,8 +712,10 @@ export default function Ventes() {
               <Tr>
                 <Th color="text.3">Date</Th>
                 <Th color="text.3">Client</Th>
+                <Th color="text.3">Catégorie</Th>
                 <Th color="text.3">Quantité</Th>
                 <Th color="text.3">Prix unitaire</Th>
+                <Th color="text.3">Remise</Th>
                 <Th color="text.3">Total</Th>
                 <Th color="text.3">Mode paiement</Th>
                 <Th color="text.3">Statut</Th>
@@ -522,9 +745,17 @@ export default function Ventes() {
                       <Text color="text.3" fontSize="sm">—</Text>
                     )}
                   </Td>
+                  <Td color="text.2" fontSize="sm">{CATEGORIE_PRODUIT_LABELS[v.categorie_produit] || '—'}</Td>
                   <Td color="text.2">{v.quantite}</Td>
                   <Td color="text.2">{Number(v.prix_unitaire).toLocaleString('fr-FR')} KMF</Td>
-                  <Td color="text.2">{(Number(v.quantite) * Number(v.prix_unitaire)).toLocaleString('fr-FR')} KMF</Td>
+                  <Td color="text.2">
+                    {Number(v.remise) > 0 ? (
+                      <Text fontSize="sm" color="orange.300">-{Number(v.remise).toLocaleString('fr-FR')} KMF</Text>
+                    ) : (
+                      <Text fontSize="sm" color="text.3">—</Text>
+                    )}
+                  </Td>
+                  <Td color="text.2">{(Number(v.quantite) * Number(v.prix_unitaire) - Number(v.remise || 0)).toLocaleString('fr-FR')} KMF</Td>
                   <Td color="text.2">{MODE_PAIEMENT_LABELS[v.mode_paiement] || v.mode_paiement}</Td>
                   <Td>
                     <Badge bg={STATUT_COLORS[v.statut_paiement] || 'surface.3'} color="white" fontSize="xs">
@@ -533,6 +764,27 @@ export default function Ventes() {
                   </Td>
                   <Td>
                     <HStack spacing={1}>
+                      <Tooltip label="Générer facture">
+                        <IconButton
+                          aria-label="Générer facture"
+                          icon={<FiDownload />}
+                          size="xs"
+                          variant="ghost"
+                          color="blue.400"
+                          isLoading={pdfLoadingId === v.id}
+                          onClick={() => handleExportFacture(v.id)}
+                        />
+                      </Tooltip>
+                      <Tooltip label="Aperçu facture">
+                        <IconButton
+                          aria-label="Aperçu facture"
+                          icon={<FiEye />}
+                          size="xs"
+                          variant="ghost"
+                          color="blue.300"
+                          onClick={() => navigate(`/ventes/${v.id}/facture?fromCycle=${selectedCycle}`)}
+                        />
+                      </Tooltip>
                       {(v.statut_paiement === 'impaye' || v.statut_paiement === 'partiel') && (
                         <Tooltip label="Marquer comme payé">
                           <IconButton
@@ -579,11 +831,11 @@ export default function Ventes() {
       )}
 
       {filteredVentes.length > 0 && (
-        <HStack justify="space-between" spacing={6}>
+        <HStack justify="space-between" borderTop="1px solid" borderColor="border.1" spacing={6} pt={4}>
           <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           <Text fontSize="sm" color="text.3">
             {filteredVentes.length !== ventes.length && `${filteredVentes.length} sur ${ventes.length} — `}
-            Total: <strong color="text.1">{totalQuantiteFiltered} poulets — {Math.round(totalVentesFiltered).toLocaleString('fr-FR')} KMF</strong>
+            Total: <strong color="text.1">{totalQuantiteFiltered} plts — {Math.round(totalVentesFiltered).toLocaleString('fr-FR')} KMF</strong>
           </Text>
         </HStack>
       )}

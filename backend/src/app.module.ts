@@ -27,6 +27,10 @@ import { RisquesModule } from './risques/risques.module.js';
 import { JobsModule } from './common/jobs/jobs.module.js';
 import { ProduitsVeterinairesModule } from './stocks/produits-veterinaires.module.js';
 import { VaccinationsModule } from './sante/vaccinations.module.js';
+import { RapportsModule } from './rapports/rapports.module.js';
+import { RemisesModule } from './remises/remises.module.js';
+import { RemiseConfiguration } from './remises/remise.entity.js';
+import { ExportModule } from './export/export.module.js';
 
 @Module({
   imports: [
@@ -34,7 +38,7 @@ import { VaccinationsModule } from './sante/vaccinations.module.js';
       uri: process.env.DATABASE_URL,
       dialect: 'postgres',
       logging: false,
-      models: [User, Cycle, MouvementStock, ProduitVeterinaire, Mortalite, Vaccination, Parametrage, Depense, Vente, Client, Alerte, Risque],
+      models: [User, Cycle, MouvementStock, ProduitVeterinaire, Mortalite, Vaccination, Parametrage, Depense, Vente, Client, Alerte, Risque, RemiseConfiguration],
       synchronize: false,
     }),
     AuthModule,
@@ -50,6 +54,9 @@ import { VaccinationsModule } from './sante/vaccinations.module.js';
     JobsModule,
     ProduitsVeterinairesModule,
     VaccinationsModule,
+    RapportsModule,
+    RemisesModule,
+    ExportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

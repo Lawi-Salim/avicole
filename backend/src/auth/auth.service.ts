@@ -31,7 +31,10 @@ export class AuthService {
     const hash = await bcrypt.hash(dto.mot_de_passe, 10);
     const user = await this.userModel.create({
       nom: dto.nom,
+      prenom: dto.prenom,
       email: dto.email,
+      telephone: dto.telephone,
+      adresse: dto.adresse,
       password_hash: hash,
       role: dto.role || 'admin',
     });
@@ -42,7 +45,10 @@ export class AuthService {
       utilisateur: {
         id: user.id,
         nom: user.nom,
+        prenom: user.prenom,
         email: user.email,
+        telephone: user.telephone,
+        adresse: user.adresse,
         role: user.role,
       },
     };
@@ -71,7 +77,10 @@ export class AuthService {
       utilisateur: {
         id: user.id,
         nom: user.nom,
+        prenom: user.prenom,
         email: user.email,
+        telephone: user.telephone,
+        adresse: user.adresse,
         role: user.role,
       },
     };
@@ -85,21 +94,26 @@ export class AuthService {
     return {
       id: user.id,
       nom: user.nom,
+      prenom: user.prenom,
       email: user.email,
+      telephone: user.telephone,
+      adresse: user.adresse,
       role: user.role,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     };
   }
 
   async findAll() {
     return this.userModel.findAll({
-      attributes: ['id', 'nom', 'email', 'role', 'actif', 'created_at'],
+      attributes: ['id', 'nom', 'prenom', 'email', 'telephone', 'adresse', 'role', 'actif', 'created_at', 'updated_at'],
       order: [['nom', 'ASC']],
     });
   }
 
   async findOne(id: string) {
     const user = await this.userModel.findByPk(id, {
-      attributes: ['id', 'nom', 'email', 'role', 'actif', 'created_at'],
+      attributes: ['id', 'nom', 'prenom', 'email', 'telephone', 'adresse', 'role', 'actif', 'created_at', 'updated_at'],
     });
     if (!user) {
       throw new NotFoundException(`Utilisateur #${id} non trouvé`);
@@ -107,24 +121,49 @@ export class AuthService {
     return user;
   }
 
-  async update(id: string, dto: Partial<{ nom: string; email: string; role: string; actif: boolean }>) {
+  async update(id: string, dto: Partial<{ nom: string; prenom?: string; email: string; telephone?: string; adresse?: string; role: string; actif: boolean }>) {
     const user = await this.userModel.findByPk(id);
     if (!user) {
       throw new NotFoundException(`Utilisateur #${id} non trouvé`);
     }
     const updateData: Record<string, unknown> = {};
     if (dto.nom !== undefined) updateData.nom = dto.nom;
+    if (dto.prenom !== undefined) updateData.prenom = dto.prenom;
     if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.telephone !== undefined) updateData.telephone = dto.telephone;
+    if (dto.adresse !== undefined) updateData.adresse = dto.adresse;
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.actif !== undefined) updateData.actif = dto.actif;
     await user.update(updateData);
     return {
       id: user.id,
       nom: user.nom,
+      prenom: user.prenom,
       email: user.email,
+      telephone: user.telephone,
+      adresse: user.adresse,
       role: user.role,
       actif: user.actif,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.userModel.findByPk(userId);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!valid) {
+      throw new UnauthorizedException('Mot de passe actuel incorrect');
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await user.update({ password_hash: hash });
+
+    return { message: 'Mot de passe modifié avec succès' };
   }
 
   async toggleActif(id: string) {
@@ -136,7 +175,10 @@ export class AuthService {
     return {
       id: user.id,
       nom: user.nom,
+      prenom: user.prenom,
       email: user.email,
+      telephone: user.telephone,
+      adresse: user.adresse,
       role: user.role,
       actif: user.actif,
     };

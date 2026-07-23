@@ -11,12 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
 import { CyclesService } from './cycles.service.js';
 import { CreateCycleDto } from './dto/create-cycle.dto.js';
 import { UpdateCycleDto, UpdatePhaseDto } from './dto/update-cycle.dto.js';
 
 @Controller('cycles')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CyclesController {
   constructor(@Inject(CyclesService) private readonly cyclesService: CyclesService) {}
 
@@ -61,6 +63,7 @@ export class CyclesController {
     return this.cyclesService.updatePhase(id, dto.phase);
   }
 
+  @Roles('admin')
   @Post(':id/cloture')
   cloturer(@Param('id') id: string) {
     return this.cyclesService.cloturer(id);

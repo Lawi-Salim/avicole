@@ -7,7 +7,10 @@ import {
   CardBody,
   Heading,
   Input,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -32,10 +35,12 @@ import {
   InputGroup,
   InputLeftElement,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit2, FiSearch, FiUser } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit2, FiSearch, FiUser, FiDownload, FiChevronDown } from 'react-icons/fi';
 import { clientsService, Client, CreateClientPayload } from '../services/clients.service';
+import { exportService } from '../services/export.service';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import { responsiveText } from '../theme/designTokens';
 
 const TYPE_LABELS: Record<string, string> = {
   menage: 'Ménage',
@@ -65,6 +70,7 @@ export default function Clients() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('tous');
@@ -75,6 +81,8 @@ export default function Clients() {
     nom: '',
     type_client: 'menage',
     contact: '',
+    email: '',
+    adresse: '',
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,7 +112,7 @@ export default function Clients() {
         showSuccess('Client ajouté');
       }
       setEditingId(null);
-      setForm({ nom: '', type_client: 'menage', contact: '' });
+      setForm({ nom: '', type_client: 'menage', contact: '', email: '', adresse: '' });
       const updated = await clientsService.getAll();
       setClients(updated);
     } catch {
@@ -116,16 +124,36 @@ export default function Clients() {
 
   const handleEdit = (c: Client) => {
     setEditingId(c.id);
-    setForm({ nom: c.nom, type_client: c.type_client, contact: c.contact || '' });
+    setForm({ nom: c.nom, type_client: c.type_client, contact: c.contact || '', email: c.email || '', adresse: c.adresse || '' });
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setForm({ nom: '', type_client: 'menage', contact: '' });
+    setForm({ nom: '', type_client: 'menage', contact: '', email: '', adresse: '' });
   };
 
   const handleDelete = async (id: string) => {
     setDeleteTargetId(id);
+  };
+
+  const handleExportClientsCsv = async () => {
+    setExporting(true);
+    try {
+      const response = await exportService.exportClients();
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'clients-export.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Erreur lors de l\'export CSV');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -179,7 +207,24 @@ export default function Clients() {
 
   return (
     <VStack spacing={6} align="stretch">
-      <Heading size="lg" color="text.1">Clients</Heading>
+      <HStack justify="space-between" align="center">
+        <Heading size={{ base: "md", md: "lg" }} color="text.1">Clients</Heading>
+        <Button
+          size={{ base: "md", md: "sm" }}
+          variant="outline"
+          borderColor="border.1"
+          color="text.2"
+          bg="surface.1"
+          leftIcon={<FiDownload />}
+          onClick={handleExportClientsCsv}
+          isLoading={exporting}
+          loadingText="Export..."
+          fontSize={responsiveText.sm}
+          borderRadius="md"
+        >
+          Exporter CSV
+        </Button>
+      </HStack>
 
       {error && (
         <Alert bg="danger.1" color="white" borderRadius="md" size="sm">
@@ -196,11 +241,11 @@ export default function Clients() {
 
       <Card bg="surface.1" borderColor="border.1" borderWidth="1px">
         <CardBody>
-          <Heading size="sm" color="text.1" mb={3}>
+          <Heading size="sm" color="text.1" mb={3} fontSize={{ base: "sm", md: "ms" }}>
             {editingId ? 'Modifier le client' : 'Ajouter un client'}
           </Heading>
           <Box as="form" onSubmit={handleSubmit}>
-            <SimpleGrid columns={{ base: 1, md: 4 }} spacing={3}>
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 5 }} spacing={3}>
               <Input
                 placeholder="Nom du client"
                 value={form.nom}
@@ -208,37 +253,73 @@ export default function Clients() {
                 bg="surface.2"
                 borderColor="border.1"
                 borderRadius="md"
-                size="sm"
+                size={{ base: "md", md: "sm" }}
                 required
               />
-              <Select
-                value={form.type_client}
-                onChange={(e) => setForm({ ...form, type_client: e.target.value as CreateClientPayload['type_client'] })}
-                bg="surface.2"
-                borderColor="border.1"
-                borderRadius="md"
-                size="sm"
-              >
-                <option value="menage">Ménage</option>
-                <option value="restaurant">Restaurant</option>
-                <option value="hotel">Hôtel</option>
-                <option value="boucherie">Boucherie</option>
-                <option value="revendeur">Revendeur</option>
-              </Select>
+              <Menu>
+                <MenuButton
+                  as={Button}
+                  w="100%"
+                  h={{ base: 10, md: 8 }}
+                  size={{ base: "md", md: "sm" }}
+                  bg="surface.2"
+                  borderColor="border.1"
+                  borderWidth="1px"
+                  borderRadius="md"
+                  rightIcon={<FiChevronDown />}
+                  textAlign="left"
+                  justifyContent="space-between"
+                  fontWeight="normal"
+                >
+                  {TYPE_LABELS[form.type_client] || form.type_client}
+                </MenuButton>
+                <MenuList bg="surface.1" borderColor="border.1">
+                  {Object.entries(TYPE_LABELS).map(([value, label]) => (
+                    <MenuItem
+                      key={value}
+                      bg="surface.1"
+                      _hover={{ bg: 'surface.2' }}
+                      color="text.1"
+                      fontSize={{ base: "md", md: "sm" }}
+                      onClick={() => setForm({ ...form, type_client: value as CreateClientPayload['type_client'] })}
+                    >
+                      {label}
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </Menu>
               <Input
-                placeholder="Contact"
+                placeholder="Contact (tél.)"
                 value={form.contact || ''}
                 onChange={(e) => setForm({ ...form, contact: e.target.value })}
                 bg="surface.2"
                 borderColor="border.1"
                 borderRadius="md"
-                size="sm"
-                required
+                size={{ base: "md", md: "sm" }}
+              />
+              <Input
+                placeholder="Email"
+                type="email"
+                value={form.email || ''}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                bg="surface.2"
+                borderColor="border.1"
+                borderRadius="md"
+                size={{ base: "md", md: "sm" }}
+              />
+              <Input
+                placeholder="Adresse"
+                value={form.adresse || ''}
+                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+                bg="surface.2"
+                borderColor="border.1"
+                borderRadius="md"
+                size={{ base: "md", md: "sm" }}
               />
               <HStack>
                 <Button
                   type="submit"
-                  size="sm"
+                  size={{ base: "md", md: "sm" }}
                   bg="accent.1"
                   color="gray.900"
                   _hover={{ bg: 'accent.2' }}
@@ -251,8 +332,8 @@ export default function Clients() {
                 </Button>
                 {editingId && (
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    size={{ base: "md", md: "sm" }}
+                    variant="outline"
                     color="text.3"
                     onClick={handleCancelEdit}
                   >
@@ -266,7 +347,7 @@ export default function Clients() {
       </Card>
 
       <HStack spacing={3} flexWrap="wrap">
-        <InputGroup maxW="300px" size="sm">
+        <InputGroup maxW="300px" size={{ base: "md", md: "sm" }}>
           <InputLeftElement pointerEvents="none">
             <FiSearch color="gray.500" />
           </InputLeftElement>
@@ -277,39 +358,88 @@ export default function Clients() {
             bg="surface.1"
             borderColor="border.1"
             borderRadius="md"
-            fontSize="sm"
+            fontSize={responsiveText.sm}
           />
         </InputGroup>
-        <Select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          bg="surface.1"
-          borderColor="border.1"
-          w="auto"
-          fontSize="sm"
-          size="sm"
-          borderRadius="md"
-        >
-          <option value="tous">Tous les types</option>
-          <option value="menage">Ménage</option>
-          <option value="restaurant">Restaurant</option>
-          <option value="hotel">Hôtel</option>
-          <option value="boucherie">Boucherie</option>
-          <option value="revendeur">Revendeur</option>
-        </Select>
-        <Select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          bg="surface.1"
-          borderColor="border.1"
-          w="auto"
-          fontSize="sm"
-          size="sm"
-          borderRadius="md"
-        >
-          <option value="nom">Trier par nom</option>
-          <option value="type">Trier par type</option>
-        </Select>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w="100%"
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+            fontWeight="normal"
+          >
+            {filterType === 'tous' ? 'Tous les types' : TYPE_LABELS[filterType] || filterType}
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1">
+            <MenuItem
+              bg="surface.1"
+              _hover={{ bg: 'surface.2' }}
+              color="text.1"
+              fontSize={{ base: "md", md: "sm" }}
+              onClick={() => setFilterType('tous')}
+            >
+              Tous les types
+            </MenuItem>
+            {Object.entries(TYPE_LABELS).map(([value, label]) => (
+              <MenuItem
+                key={value}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+                onClick={() => setFilterType(value)}
+              >
+                {label}
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w="100%"
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+            fontWeight="normal"
+          >
+            {sortBy === 'nom' ? 'Trier par nom' : 'Trier par type'}
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1">
+            <MenuItem
+              bg="surface.1"
+              _hover={{ bg: 'surface.2' }}
+              color="text.1"
+              fontSize={{ base: "md", md: "sm" }}
+              onClick={() => setSortBy('nom')}
+            >
+              Trier par nom
+            </MenuItem>
+            <MenuItem
+              bg="surface.1"
+              _hover={{ bg: 'surface.2' }}
+              color="text.1"
+              fontSize={{ base: "md", md: "sm" }}
+              onClick={() => setSortBy('type')}
+            >
+              Trier par type
+            </MenuItem>
+          </MenuList>
+        </Menu>
       </HStack>
 
       {filteredClients.length === 0 ? (
@@ -321,9 +451,11 @@ export default function Clients() {
           <Table size="sm" variant="simple">
             <Thead>
               <Tr>
-                <Th color="text.3">Nom</Th>
-                <Th color="text.3">Type</Th>
-                <Th color="text.3">Contact</Th>
+                <Th color="text.3" minW={{ base: "120px", md: "auto" }}>Nom</Th>
+                <Th color="text.3" minW={{ base: "100px", md: "auto" }}>Type</Th>
+                <Th color="text.3" minW={{ base: "120px", md: "auto" }}>Contact</Th>
+                <Th color="text.3" minW={{ base: "120px", md: "auto" }}>Email</Th>
+                <Th color="text.3" minW={{ base: "120px", md: "auto" }}>Adresse</Th>
                 <Th color="text.3">Actions</Th>
               </Tr>
             </Thead>
@@ -335,8 +467,8 @@ export default function Clients() {
                   _hover={{ bg: 'surface.2' }}
                   onClick={() => navigate(`/clients/${c.id}`)}
                 >
-                  <Td color="text.2" fontWeight="medium">{c.nom}</Td>
-                  <Td>
+                  <Td color="text.2" fontWeight="medium" minW={{ base: "140px", md: "auto" }}>{c.nom}</Td>
+                  <Td minW={{ base: "100px", md: "auto" }}>
                     <Box
                       as="span"
                       px={2}
@@ -350,7 +482,9 @@ export default function Clients() {
                       {TYPE_LABELS[c.type_client] || c.type_client}
                     </Box>
                   </Td>
-                  <Td color="text.2">{c.contact || '—'}</Td>
+                  <Td color="text.2" minW={{ base: "135px", md: "auto" }}>{c.contact || '—'}</Td>
+                  <Td color="text.2" minW={{ base: "120px", md: "auto" }}>{c.email || '—'}</Td>
+                  <Td color="text.2" minW={{ base: "140px", md: "auto" }}>{c.adresse || '—'}</Td>
                   <Td onClick={(e) => e.stopPropagation()}>
                     <HStack spacing={1}>
                       <Tooltip label="Voir">
@@ -393,7 +527,7 @@ export default function Clients() {
       )}
 
       {filteredClients.length > 0 && (
-        <HStack justify="space-between">
+        <HStack justify="space-between" borderTop="1px solid" borderColor="border.1" pt={4}>
           <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           <Text fontSize="sm" color="text.3">
             {filteredClients.length !== clients.length && `${filteredClients.length} sur `}

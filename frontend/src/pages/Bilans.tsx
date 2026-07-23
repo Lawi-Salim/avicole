@@ -5,7 +5,10 @@ import {
   Card,
   CardBody,
   Heading,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Text,
   VStack,
   HStack,
@@ -22,7 +25,7 @@ import {
   Spinner,
   Center,
 } from '@chakra-ui/react';
-import { FiLock } from 'react-icons/fi';
+import { FiLock, FiChevronDown } from 'react-icons/fi';
 import { cyclesService, Cycle } from '../services/cycles.service';
 import { depensesService, Depense } from '../services/depenses.service';
 import { ventesService, Vente } from '../services/ventes.service';
@@ -153,25 +156,43 @@ export default function Bilans() {
 
       <Box>
         <Text mb={1} fontSize="sm" color="text.2">Sélectionner un cycle</Text>
-        <Select
-          value={selectedCycle}
-          onChange={(e) => {
-            setSelectedCycle(e.target.value);
-            const cycle = cycles.find(c => c.id === e.target.value);
-            setSelectedCycleData(cycle || null);
-          }}
-          bg="surface.1"
-          borderColor="border.1"
-          maxW="400px"
-          fontSize="sm"
-          h={8}
-        >
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>
-              Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')} ({c.statut === 'cloture' ? 'Clôturé' : 'En cours'})
-            </option>
-          ))}
-        </Select>
+        <Menu>
+          <MenuButton
+            as={Button}
+            w={{ base: "100%", md: "400px" }}
+            h={{ base: 10, md: 8 }}
+            size={{ base: "md", md: "sm" }}
+            bg="surface.1"
+            borderColor="border.1"
+            borderWidth="1px"
+            borderRadius="md"
+            rightIcon={<FiChevronDown />}
+            textAlign="left"
+            justifyContent="space-between"
+          >
+            {selectedCycle
+              ? `Cycle #${cycles.find(c => c.id === selectedCycle)?.numero_cycle} — ${new Date(cycles.find(c => c.id === selectedCycle)?.date_reception || '').toLocaleDateString('fr-FR')} (${cycles.find(c => c.id === selectedCycle)?.statut === 'cloture' ? 'Clôturé' : 'En cours'})`
+              : 'Sélectionner un cycle'
+            }
+          </MenuButton>
+          <MenuList bg="surface.1" borderColor="border.1" maxH="300px" overflowY="auto">
+            {cycles.map((c) => (
+              <MenuItem
+                key={c.id}
+                onClick={() => {
+                  setSelectedCycle(c.id);
+                  setSelectedCycleData(c);
+                }}
+                bg="surface.1"
+                _hover={{ bg: 'surface.2' }}
+                color="text.1"
+                fontSize={{ base: "md", md: "sm" }}
+              >
+                Cycle #{c.numero_cycle} — {new Date(c.date_reception).toLocaleDateString('fr-FR')} ({c.statut === 'cloture' ? 'Clôturé' : 'En cours'})
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Menu>
       </Box>
 
       {selectedCycleData && (
@@ -275,7 +296,7 @@ export default function Bilans() {
                   );
                 })}
                 {Object.keys(depensesByCategorie).length === 0 && (
-                  <Tr><Td color="text.3" colSpan={3} textAlign="center">Aucune dépense enregistrée</Td></Tr>
+                  <Tr><Td color="text.3" fontSize="sm" colSpan={3} textAlign="center">Aucune dépense enregistrée</Td></Tr>
                 )}
               </Tbody>
             </Table>
@@ -283,7 +304,7 @@ export default function Bilans() {
 
           <Heading size="md" color="text.1">Détail des ventes</Heading>
           {ventes.length === 0 ? (
-            <Text color="text.3" textAlign="center" py={4}>Aucune vente enregistrée.</Text>
+            <Text color="text.3" fontSize="sm" textAlign="center" py={4}>Aucune vente enregistrée.</Text>
           ) : (
             <Box overflowX="auto">
               <Table size="sm" variant="simple">

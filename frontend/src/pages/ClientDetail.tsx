@@ -7,6 +7,7 @@ import {
   CardBody,
   HStack,
   Heading,
+  IconButton,
   Input,
   Modal,
   ModalOverlay,
@@ -15,7 +16,10 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  Select,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   SimpleGrid,
   Spinner,
   Table,
@@ -29,12 +33,14 @@ import {
   Alert,
   AlertIcon,
   Badge,
+  Tooltip,
+  useToast,
 } from '@chakra-ui/react';
-import { FiArrowLeft, FiPlus } from 'react-icons/fi';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { FiArrowLeft, FiPlus, FiDownload, FiEye, FiChevronDown } from 'react-icons/fi';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { clientsService, Client, ClientVente } from '../services/clients.service';
 import { cyclesService, Cycle } from '../services/cycles.service';
-import { ventesService, CreateVentePayload } from '../services/ventes.service';
+import { ventesService, CreateVentePayload, CategorieProduit } from '../services/ventes.service';
 import { santeService, Mortalite } from '../services/sante.service';
 
 const TYPE_LABELS: Record<string, string> = {
@@ -85,12 +91,15 @@ export default function ClientDetail() {
     date: new Date().toISOString().slice(0, 10),
     mode_paiement: 'especes',
     statut_paiement: 'paye',
+    categorie_produit: 'poulet_vif',
   });
   const [submittingVente, setSubmittingVente] = useState(false);
   const [venteError, setVenteError] = useState('');
   const [venteSuccess, setVenteSuccess] = useState('');
   const [showVenteErrorModal, setShowVenteErrorModal] = useState(false);
   const [venteErrorMessage, setVenteErrorMessage] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const toast = useToast();
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -137,6 +146,7 @@ export default function ClientDetail() {
         date: new Date().toISOString().slice(0, 10),
         mode_paiement: 'especes',
         statut_paiement: 'paye',
+        categorie_produit: 'poulet_vif',
       });
       const updatedVentes = await clientsService.getVentes(id!);
       setVentes(updatedVentes);
@@ -174,6 +184,19 @@ export default function ClientDetail() {
 
   const cyclesUniques = new Set(ventes.map((v) => v.cycle?.id).filter(Boolean)).size;
 
+  const dernierCycleAvecVentes = useMemo(() => {
+    const byCycle = new Map<string, { id: string; numero: number }>();
+    for (const v of ventes) {
+      if (!v.cycle) continue;
+      const existing = byCycle.get(v.cycle_id);
+      if (!existing || v.cycle.numero_cycle > existing.numero) {
+        byCycle.set(v.cycle_id, { id: v.cycle.id, numero: v.cycle.numero_cycle });
+      }
+    }
+    const sorted = Array.from(byCycle.values()).sort((a, b) => b.numero - a.numero);
+    return sorted.length > 0 ? sorted[0] : null;
+  }, [ventes]);
+
   const chartData = useMemo(() => {
     const byCycle = new Map<string, { cycle: string; quantite: number; montant: number; numero: number }>();
     for (const v of ventes) {
@@ -190,6 +213,32 @@ export default function ClientDetail() {
     }
     return Array.from(byCycle.values()).sort((a, b) => a.numero - b.numero);
   }, [ventes]);
+
+  const handleDownloadFactureGroupee = async () => {
+    if (!id || !dernierCycleAvecVentes) return;
+    setPdfLoading(true);
+    try {
+      const response = await ventesService.exportFactureGroupeePdf(id, dernierCycleAvecVentes.id);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `facture-groupee-${client?.nom || id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: 'Erreur lors du téléchargement', status: 'error', duration: 3000 });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handlePreviewFactureGroupee = () => {
+    if (!id || !dernierCycleAvecVentes) return;
+    navigate(`/clients/${id}/cycles/${dernierCycleAvecVentes.id}/facture`);
+  };
 
   if (loading) {
     return <Box display="flex" justifyContent="center" py={20}><Spinner size="xl" color="accent.1" /></Box>;
@@ -214,7 +263,7 @@ export default function ClientDetail() {
       )}
 
       <HStack justify="space-between" flexWrap="wrap" gap={4}>
-        <HStack>
+        <HStack spacing={1}>
           <Button
             variant="ghost"
             leftIcon={<FiArrowLeft />}
@@ -238,6 +287,29 @@ export default function ClientDetail() {
           >
             {TYPE_LABELS[client.type_client] || client.type_client}
           </Box>
+          <Tooltip label="Aperçu facture">
+            <IconButton
+              aria-label="Aperçu facture"
+              icon={<FiEye />}
+              size="xs"
+              variant="ghost"
+              color="blue.300"
+              onClick={handlePreviewFactureGroupee}
+              isDisabled={!dernierCycleAvecVentes}
+            />
+          </Tooltip>
+          <Tooltip label="Générer facture">
+            <IconButton
+              aria-label="Générer facture"
+              icon={<FiDownload />}
+              size="xs"
+              variant="ghost"
+              color="blue.400"
+              onClick={handleDownloadFactureGroupee}
+              isLoading={pdfLoading}
+              isDisabled={!dernierCycleAvecVentes}
+            />
+          </Tooltip>
         </HStack>
         <Button
           size="sm"
@@ -294,7 +366,7 @@ export default function ClientDetail() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
                   <XAxis dataKey="cycle" tick={{ fontSize: 11, fill: '#888' }} />
                   <YAxis tick={{ fontSize: 11, fill: '#888' }} />
-                  <Tooltip
+                  <RechartsTooltip
                     formatter={(value: unknown, name?: string | number) =>
                       name === 'quantite'
                         ? [`${value} poulets`]
@@ -317,25 +389,34 @@ export default function ClientDetail() {
             <Heading size="sm" color="text.1">
               Historique des ventes ({filteredVentes.length} vente{filteredVentes.length > 1 ? 's' : ''} — {cyclesUniques} cycle{cyclesUniques > 1 ? 's' : ''})
             </Heading>
-            <Select
-              value={filterStatut}
-              onChange={(e) => setFilterStatut(e.target.value)}
-              bg="surface.2"
-              borderColor="border.1"
-              w="auto"
-              fontSize="xs"
-              size="sm"
-              borderRadius="md"
-            >
-              <option value="tous">Tous les statuts</option>
-              <option value="paye">Payé</option>
-              <option value="partiel">Partiel</option>
-              <option value="impaye">Impayé</option>
-            </Select>
+            <Menu>
+              <MenuButton
+                as={Button}
+                w="auto"
+                h={{ base: 10, md: 8 }}
+                size={{ base: "md", md: "sm" }}
+                bg="surface.2"
+                borderColor="border.1"
+                borderWidth="1px"
+                borderRadius="md"
+                rightIcon={<FiChevronDown />}
+                textAlign="left"
+                justifyContent="space-between"
+                fontSize="xs"
+              >
+                {filterStatut === 'tous' ? 'Tous les statuts' : STATUT_PAIEMENT_LABELS[filterStatut] || filterStatut}
+              </MenuButton>
+              <MenuList bg="surface.1" borderColor="border.1">
+                <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setFilterStatut('tous')}>Tous les statuts</MenuItem>
+                <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setFilterStatut('paye')}>Payé</MenuItem>
+                <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setFilterStatut('partiel')}>Partiel</MenuItem>
+                <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setFilterStatut('impaye')}>Impayé</MenuItem>
+              </MenuList>
+            </Menu>
           </HStack>
 
           {filteredVentes.length === 0 ? (
-            <Text color="text.3" textAlign="center" py={6}>
+            <Text color="text.3" fontSize="sm" textAlign="center" py={6}>
               {ventes.length === 0 ? 'Aucune vente pour ce client.' : 'Aucune vente ne correspond au filtre.'}
             </Text>
           ) : (
@@ -427,32 +508,52 @@ export default function ClientDetail() {
                   size="sm"
                   required
                 />
-                <Select
-                  value={venteForm.mode_paiement}
-                  onChange={(e) => setVenteForm({ ...venteForm, mode_paiement: e.target.value as CreateVentePayload['mode_paiement'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  size="sm"
-                  borderRadius="md"
-                >
-                  <option value="especes">Espèces</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="cheque">Chèque</option>
-                  <option value="virement">Virement</option>
-                  <option value="credit">Crédit</option>
-                </Select>
-                <Select
-                  value={venteForm.statut_paiement}
-                  onChange={(e) => setVenteForm({ ...venteForm, statut_paiement: e.target.value as CreateVentePayload['statut_paiement'] })}
-                  bg="surface.2"
-                  borderColor="border.1"
-                  size="sm"
-                  borderRadius="md"
-                >
-                  <option value="paye">Payé</option>
-                  <option value="partiel">Partiel</option>
-                  <option value="impaye">Impayé</option>
-                </Select>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {MODE_PAIEMENT_LABELS[venteForm.mode_paiement] || venteForm.mode_paiement}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, mode_paiement: 'especes' })}>Espèces</MenuItem>
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, mode_paiement: 'mobile_money' })}>Mobile Money</MenuItem>
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, mode_paiement: 'cheque' })}>Chèque</MenuItem>
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, mode_paiement: 'virement' })}>Virement</MenuItem>
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, mode_paiement: 'credit' })}>Crédit</MenuItem>
+                  </MenuList>
+                </Menu>
+                <Menu>
+                  <MenuButton
+                    as={Button}
+                    w="100%"
+                    h={{ base: 10, md: 8 }}
+                    size={{ base: "md", md: "sm" }}
+                    bg="surface.2"
+                    borderColor="border.1"
+                    borderWidth="1px"
+                    borderRadius="md"
+                    rightIcon={<FiChevronDown />}
+                    textAlign="left"
+                    justifyContent="space-between"
+                  >
+                    {STATUT_PAIEMENT_LABELS[venteForm.statut_paiement] || venteForm.statut_paiement}
+                  </MenuButton>
+                  <MenuList bg="surface.1" borderColor="border.1">
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, statut_paiement: 'paye' })}>Payé</MenuItem>
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, statut_paiement: 'partiel' })}>Partiel</MenuItem>
+                    <MenuItem bg="surface.1" _hover={{ bg: 'surface.2' }} color="text.1" fontSize={{ base: "md", md: "sm" }} onClick={() => setVenteForm({ ...venteForm, statut_paiement: 'impaye' })}>Impayé</MenuItem>
+                  </MenuList>
+                </Menu>
               </SimpleGrid>
               {currentCycle && (
                 <Text fontSize="xs" color="text.3" mt={3}>
