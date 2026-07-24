@@ -32,7 +32,7 @@ export default function ConfirmModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent mx={{ base: 4, md: 0 }}>
         <ModalHeader color="text.1">{title}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>

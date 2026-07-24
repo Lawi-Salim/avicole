@@ -220,7 +220,7 @@ export default function Utilisateurs() {
 
       <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
-        <ModalContent bg="surface.1">
+        <ModalContent bg="surface.1" mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">{editingId ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>

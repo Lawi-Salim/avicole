@@ -467,7 +467,7 @@ export default function ClientDetail() {
 
       <Modal isOpen={showVenteForm} onClose={() => setShowVenteForm(false)} size="lg" isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">Créer une vente pour {client?.nom}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -585,7 +585,7 @@ export default function ClientDetail() {
 
       <Modal isOpen={showVenteErrorModal} onClose={() => setShowVenteErrorModal(false)} isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">Erreur de création</ModalHeader>
           <ModalCloseButton />
           <ModalBody>

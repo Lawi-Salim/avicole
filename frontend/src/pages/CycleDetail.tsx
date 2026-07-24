@@ -909,7 +909,7 @@ export default function CycleDetail() {
       />
       <Modal isOpen={showClotureWarning} onClose={() => setShowClotureWarning(false)} isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">Impossible de clôturer le cycle</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -929,7 +929,7 @@ export default function CycleDetail() {
       </Modal>
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} size="md" isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">Modifier le cycle #{cycle?.numero_cycle}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
