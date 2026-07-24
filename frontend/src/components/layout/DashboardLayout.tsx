@@ -442,6 +442,10 @@ function Navbar({ onCalculatorOpen, onMobileMenuOpen, isMobileSidebarOpen }: { o
           bottom={0}
           bg="rgba(0, 0, 0, 0.5)"
           zIndex={1000}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          p={4}
           onClick={() => setShowProfilModal(false)}
         >
           <Box
@@ -449,8 +453,7 @@ function Navbar({ onCalculatorOpen, onMobileMenuOpen, isMobileSidebarOpen }: { o
             borderRadius="lg"
             p={6}
             maxW="500px"
-            mx="auto"
-            mt={{ base: 4, md: '10vh' }}
+            w="full"
             onClick={(e) => e.stopPropagation()}
           >
             <HStack justify="space-between" align="center" mb={6}>

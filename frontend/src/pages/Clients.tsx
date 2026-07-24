@@ -545,7 +545,7 @@ export default function Clients() {
       />
       <Modal isOpen={showErrorModal} onClose={() => setShowErrorModal(false)} isCentered>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">Erreur de suppression</ModalHeader>
           <ModalCloseButton />
           <ModalBody>

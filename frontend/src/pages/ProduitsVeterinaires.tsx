@@ -262,7 +262,7 @@ export default function ProduitsVeterinaires() {
 
       <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
-        <ModalContent bg="surface.1">
+        <ModalContent bg="surface.1" mx={{ base: 4, md: 0 }}>
           <ModalHeader color="text.1">{editingId ? 'Modifier le produit' : 'Nouveau produit'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
